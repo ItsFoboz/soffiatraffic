@@ -1,66 +1,80 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { ArrivalTime, VehicleType } from '@/lib/types';
-
-const TYPE_MAP: Record<string, VehicleType> = {
-  А: 'bus',
-  Б: 'bus',
-  ТМ: 'tram',
-  ТБ: 'trolley',
-  М: 'metro',
-};
-
-function detectType(line: string, typeStr?: string): VehicleType {
-  if (typeStr) {
-    const t = TYPE_MAP[typeStr.toUpperCase()];
-    if (t) return t;
-  }
-  const l = line.toUpperCase();
-  if (l.startsWith('M') || l === 'M1' || l === 'M2' || l === 'M3' || l === 'M4') return 'metro';
-  if (/^\d+$/.test(l)) {
-    const n = parseInt(l);
-    if (n <= 22) return 'tram';
-    if (n >= 100 && n <= 109) return 'trolley';
-  }
-  return 'bus';
-}
+import type { ArrivalTime } from '@/lib/types';
+import { fetchTripUpdatesFeed, fetchSofiaLinesAndStops } from '@/lib/sofiaTrafficData';
 
 export async function GET(request: NextRequest) {
   const stopCode = request.nextUrl.searchParams.get('stopCode');
   if (!stopCode) {
-    return NextResponse.json({ error: 'stopCode is required' }, { status: 400 });
+    return NextResponse.json({ error: 'stopCode required' }, { status: 400 });
   }
 
   try {
-    const res = await fetch('http://drone.sumc.bg/api/v1/timing', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stopCode }),
-      signal: AbortSignal.timeout(8000),
-    });
+    const [feed, { lines }] = await Promise.all([
+      fetchTripUpdatesFeed(),
+      fetchSofiaLinesAndStops(),
+    ]);
 
-    if (!res.ok) throw new Error(`API ${res.status}`);
-
-    const data = await res.json();
+    const now = Math.floor(Date.now() / 1000);
     const arrivals: ArrivalTime[] = [];
 
-    // The API returns varied formats; normalize here
-    const items = Array.isArray(data) ? data : (data?.times ?? data?.arrivals ?? []);
-    for (const item of items) {
-      const line = item.line ?? item.route ?? item.routeId ?? '?';
-      const minutes = parseInt(item.time ?? item.minutes ?? item.eta ?? '0');
-      arrivals.push({
-        line: String(line),
-        type: detectType(String(line), item.type),
-        direction: item.direction ?? item.headsign ?? item.destination ?? '',
-        minutes: isNaN(minutes) ? 0 : minutes,
-        isRealtime: item.isRealtime ?? item.realtime ?? false,
-      });
+    // Possible GTFS stop_id prefixes for a given code
+    const candidateIds = new Set([
+      `A${stopCode}`,
+      `TB${stopCode}`,
+      `TM${stopCode}`,
+      `M${stopCode}`,
+    ]);
+
+    for (const entity of feed.entity ?? []) {
+      const tu = entity.tripUpdate;
+      if (!tu) continue;
+
+      const routeId: string = tu.trip?.routeId ?? '';
+      const lineInfo = lines[routeId];
+      if (!lineInfo) continue;
+
+      for (const stu of tu.stopTimeUpdate ?? []) {
+        if (!candidateIds.has(stu.stopId)) continue;
+
+        // Get arrival time (Unix seconds)
+        const arrivalTs =
+          (typeof stu.arrival?.time === 'number' ? stu.arrival.time : null) ??
+          (typeof stu.departure?.time === 'number' ? stu.departure.time : null);
+
+        if (arrivalTs === null) continue;
+
+        const minutesRaw = Math.round((arrivalTs - now) / 60);
+        const minutes = Math.max(0, minutesRaw);
+
+        // Only show arrivals in the next 60 minutes
+        if (minutesRaw > 60 || minutesRaw < -2) continue;
+
+        arrivals.push({
+          line: lineInfo.name,
+          type: lineInfo.type,
+          direction: tu.trip?.directionHeadsign ?? '',
+          minutes,
+          isRealtime: true,
+        });
+
+        break; // Only count this route once per stop
+      }
     }
 
+    // Sort by arrival time, deduplicate by line+direction
     arrivals.sort((a, b) => a.minutes - b.minutes);
-    return NextResponse.json({ arrivals });
+
+    const seen = new Set<string>();
+    const deduped = arrivals.filter((a) => {
+      const key = `${a.type}:${a.line}:${a.direction}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    return NextResponse.json({ arrivals: deduped });
   } catch (err) {
     console.error('Arrivals fetch error:', err);
-    return NextResponse.json({ arrivals: [], error: 'Could not load arrivals' }, { status: 200 });
+    return NextResponse.json({ arrivals: [] });
   }
 }

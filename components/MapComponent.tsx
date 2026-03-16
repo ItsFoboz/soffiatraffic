@@ -22,8 +22,10 @@ interface MapComponentProps {
   showStops: boolean;
   selectedStop?: Stop | null;
   routeCoords?: [number, number][];
+  vehicleRouteCoords?: [number, number][];
   userLocation?: [number, number] | null;
   onStopClick?: (stop: Stop) => void;
+  onVehicleClick?: (vehicle: Vehicle) => void;
   centerOnUser?: boolean;
 }
 
@@ -51,8 +53,10 @@ export default function MapComponent({
   showStops,
   selectedStop,
   routeCoords,
+  vehicleRouteCoords,
   userLocation,
   onStopClick,
+  onVehicleClick,
   centerOnUser,
 }: MapComponentProps) {
   const { t } = useT();
@@ -61,6 +65,7 @@ export default function MapComponent({
   const vehicleLayerRef = useRef<import('leaflet').LayerGroup | null>(null);
   const stopLayerRef = useRef<import('leaflet').LayerGroup | null>(null);
   const routeLayerRef = useRef<import('leaflet').Polyline | null>(null);
+  const vehicleRouteLayerRef = useRef<import('leaflet').Polyline | null>(null);
   const userMarkerRef = useRef<import('leaflet').Marker | null>(null);
   const initializedRef = useRef(false);
 
@@ -69,12 +74,14 @@ export default function MapComponent({
   const showStopsRef = useRef(showStops);
   const selectedStopRef = useRef(selectedStop);
   const onStopClickRef = useRef(onStopClick);
+  const onVehicleClickRef = useRef(onVehicleClick);
   const tRef = useRef(t);
 
   useEffect(() => { stopsRef.current = stops; }, [stops]);
   useEffect(() => { showStopsRef.current = showStops; }, [showStops]);
   useEffect(() => { selectedStopRef.current = selectedStop; }, [selectedStop]);
   useEffect(() => { onStopClickRef.current = onStopClick; }, [onStopClick]);
+  useEffect(() => { onVehicleClickRef.current = onVehicleClick; }, [onVehicleClick]);
   useEffect(() => { tRef.current = t; }, [t]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -182,14 +189,33 @@ export default function MapComponent({
         const typeLabel = t(`vehicle.${v.type}`);
         const speedText = v.speed !== undefined ? `${v.speed} ${t('vehicle.kmh')}` : '';
 
-        const marker = L.marker([v.lat, v.lng], { icon });
+        const marker = L.marker([v.lat, v.lng], { icon, zIndexOffset: 200 });
+
         marker.bindPopup(`
-          <div class="font-sans p-1 min-w-[140px]">
+          <div class="font-sans p-1 min-w-[160px]">
             <div class="font-bold text-base" style="color:${color}">${typeLabel} ${v.line}</div>
             ${v.directionHeadsign ? `<div class="text-sm text-gray-600 mt-1">→ ${v.directionHeadsign}</div>` : ''}
             ${speedText ? `<div class="text-xs text-gray-500 mt-1">${t('vehicle.speed')}: ${speedText}</div>` : ''}
+            ${v.routeId ? `<div class="text-xs text-blue-600 mt-2 cursor-pointer show-route-btn" data-route="${v.routeId}">🗺️ Show route on map</div>` : ''}
           </div>
         `);
+
+        // Allow clicking the "Show route" link inside popup
+        marker.on('popupopen', () => {
+          const btn = document.querySelector(`.show-route-btn[data-route="${v.routeId}"]`);
+          if (btn) {
+            btn.addEventListener('click', () => {
+              onVehicleClickRef.current?.(v);
+              marker.closePopup();
+            });
+          }
+        });
+
+        // Also allow clicking the marker itself
+        marker.on('click', () => {
+          if (v.routeId) onVehicleClickRef.current?.(v);
+        });
+
         marker.addTo(vehicleLayerRef.current!);
       }
     });
@@ -201,7 +227,7 @@ export default function MapComponent({
     import('leaflet').then(({ default: L }) => renderStops(L));
   }, [stops, showStops, selectedStop, onStopClick, renderStops]);
 
-  // Update route polyline
+  // Update transit route polyline (from route planner)
   useEffect(() => {
     if (!mapRef.current) return;
     import('leaflet').then(({ default: L }) => {
@@ -220,6 +246,25 @@ export default function MapComponent({
       }
     });
   }, [routeCoords]);
+
+  // Vehicle line route overlay (shown when clicking a vehicle)
+  useEffect(() => {
+    if (!mapRef.current) return;
+    import('leaflet').then(({ default: L }) => {
+      if (vehicleRouteLayerRef.current) {
+        vehicleRouteLayerRef.current.remove();
+        vehicleRouteLayerRef.current = null;
+      }
+      if (vehicleRouteCoords && vehicleRouteCoords.length > 1) {
+        vehicleRouteLayerRef.current = L.polyline(vehicleRouteCoords, {
+          color: '#F97316',   // orange — distinct from the blue route planner line
+          weight: 5,
+          opacity: 0.9,
+        }).addTo(mapRef.current!);
+        mapRef.current!.fitBounds(vehicleRouteLayerRef.current.getBounds(), { padding: [50, 50] });
+      }
+    });
+  }, [vehicleRouteCoords]);
 
   // Update user location
   useEffect(() => {
