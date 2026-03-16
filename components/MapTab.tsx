@@ -189,6 +189,7 @@ export default function MapTab({
           onStopClick={handleStopClick}
           onVehicleClick={handleVehicleClick}
           centerOnUser={centerOnUser}
+          followUser={!!activeNavigation}
         />
       </div>
 
@@ -398,6 +399,7 @@ export default function MapTab({
           destLat={activeNavigation.destLat}
           destLng={activeNavigation.destLng}
           onEnd={onEndNavigation}
+          onGpsUpdate={(lat, lng) => setUserLocation([lat, lng])}
         />
       )}
     </div>

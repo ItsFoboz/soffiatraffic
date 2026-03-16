@@ -36,6 +36,8 @@ interface MapComponentProps {
   onStopClick?: (stop: Stop) => void;
   onVehicleClick?: (vehicle: Vehicle) => void;
   centerOnUser?: boolean;
+  /** When true, map smoothly pans to userLocation on every update (navigation mode) */
+  followUser?: boolean;
 }
 
 function makeVehicleSvg(color: string, bearing: number, line: string): string {
@@ -68,6 +70,7 @@ export default function MapComponent({
   onStopClick,
   onVehicleClick,
   centerOnUser,
+  followUser = false,
 }: MapComponentProps) {
   const { t } = useT();
   const mapRef = useRef<import('leaflet').Map | null>(null);
@@ -296,7 +299,7 @@ export default function MapComponent({
     });
   }, [vehicleRouteCoords]);
 
-  // Update user location
+  // Update user location marker and optionally center/follow
   useEffect(() => {
     if (!mapRef.current || !userLocation) return;
     import('leaflet').then(({ default: L }) => {
@@ -305,8 +308,8 @@ export default function MapComponent({
       } else {
         const icon = L.divIcon({
           html: `<div style="position:relative;width:18px;height:18px">
-            <div style="position:absolute;inset:0;border-radius:50%;background:rgba(59,130,246,0.25);animation:pulse-ring 1.5s ease-out infinite"></div>
-            <div style="position:absolute;inset:3px;border-radius:50%;background:#3B82F6;border:2px solid white;box-shadow:0 0 6px rgba(59,130,246,0.6)"></div>
+            <div style="position:absolute;inset:0;border-radius:50%;background:rgba(26,86,219,0.2);animation:pulse-ring 1.5s ease-out infinite"></div>
+            <div style="position:absolute;inset:3px;border-radius:50%;background:#1A56DB;border:2px solid white;box-shadow:0 0 6px rgba(26,86,219,0.5)"></div>
           </div>`,
           className: '',
           iconSize: [18, 18],
@@ -316,10 +319,19 @@ export default function MapComponent({
       }
 
       if (centerOnUser) {
-        mapRef.current!.setView(userLocation, 15);
+        // One-shot center button: jump to user at zoom ≥ 15
+        mapRef.current!.setView(userLocation, Math.max(mapRef.current!.getZoom(), 15), { animate: true });
+      } else if (followUser) {
+        // Navigation mode: zoom in to 16 if needed, then smooth pan on each update
+        const currentZoom = mapRef.current!.getZoom();
+        if (currentZoom < 16) {
+          mapRef.current!.setView(userLocation, 16, { animate: true, duration: 0.8 });
+        } else {
+          mapRef.current!.panTo(userLocation, { animate: true, duration: 0.3 });
+        }
       }
     });
-  }, [userLocation, centerOnUser]);
+  }, [userLocation, centerOnUser, followUser]);
 
   return (
     <div className="relative w-full h-full">
