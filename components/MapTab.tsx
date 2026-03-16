@@ -198,20 +198,46 @@ export default function MapTab({
           <VehicleFilter active={filter} onChange={setFilter} counts={counts} />
         </div>
 
-        <div className="flex items-center gap-2 mt-2 pointer-events-auto">
+        {/* Live indicator pill */}
+        <div
+          className="flex items-center gap-1.5 mt-2 pointer-events-auto"
+          style={{
+            display: 'inline-flex',
+            background: 'var(--color-surface)',
+            borderRadius: 'var(--radius-full)',
+            boxShadow: 'var(--shadow-sm)',
+            padding: '4px 10px 4px 8px',
+          }}
+        >
+          {/* Scale-pulsing dot */}
+          <span
+            className={isLive ? 'animate-live' : ''}
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: isLive ? 'var(--color-live)' : 'var(--color-text-muted)',
+              flexShrink: 0,
+            }}
+          />
+          {/* Toggle label */}
           <button
             onClick={() => setIsLive(!isLive)}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm backdrop-blur-sm ${
-              isLive
-                ? 'bg-green-500/90 text-white'
-                : 'bg-white/90 text-gray-600 border border-gray-200'
-            }`}
+            style={{
+              fontSize: 'var(--font-size-sm)',
+              fontWeight: 'var(--font-weight-semibold)',
+              color: 'var(--color-text-primary)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+            }}
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-white animate-pulse' : 'bg-gray-400'}`} />
             {isLive ? 'Live' : 'Paused'}
           </button>
+          {/* Timestamp */}
           {lastUpdate && (
-            <span className="text-[11px] text-gray-600 bg-white/85 backdrop-blur-sm px-2 py-1 rounded-full shadow-sm border border-white/60">
+            <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
               {lastUpdate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
           )}

@@ -16,10 +16,10 @@ const VEHICLE_COLORS: Record<string, string> = {
 };
 
 const STOP_COLORS: Record<string, string> = {
-  bus: '#2563EB',
-  tram: '#DC2626',
-  trolley: '#16A34A',
-  metro: '#7C3AED',
+  bus:     '#1A56DB',
+  tram:    '#DC2626',
+  trolley: '#059669',
+  metro:   '#7C3AED',
   default: '#475569',
 };
 
@@ -115,12 +115,13 @@ export default function MapComponent({
       const isSelected = selectedStopRef.current?.id === stop.id;
       const stopColor = stop.type ? STOP_COLORS[stop.type] : STOP_COLORS.default;
 
+      // Spec: 8px circle (radius=4), type color, white 1.5px border
       const marker = L.circleMarker([stop.lat, stop.lng], {
-        radius: isSelected ? 9 : isSmall ? 4 : 6,
-        fillColor: isSelected ? '#F59E0B' : stopColor,
-        color: 'white',
-        weight: isSelected ? 2.5 : 1.5,
-        fillOpacity: isSelected ? 1 : 0.85,
+        radius:      isSelected ? 8 : isSmall ? 3 : 4,
+        fillColor:   isSelected ? '#F59E0B' : stopColor,
+        color:       'white',
+        weight:      isSelected ? 2 : 1.5,
+        fillOpacity: 1,
       });
 
       if (onStopClickRef.current) {

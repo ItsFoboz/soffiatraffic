@@ -37,31 +37,69 @@ export default function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   const { t } = useT();
 
   const tabs: { id: Tab; labelKey: string }[] = [
-    { id: 'map', labelKey: 'nav.map' },
-    { id: 'routes', labelKey: 'nav.routes' },
-    { id: 'stops', labelKey: 'nav.stops' },
+    { id: 'map',       labelKey: 'nav.map'       },
+    { id: 'routes',    labelKey: 'nav.routes'    },
+    { id: 'stops',     labelKey: 'nav.stops'     },
     { id: 'favorites', labelKey: 'nav.favorites' },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-gray-100 safe-area-pb shadow-[0_-1px_12px_rgba(0,0,0,0.06)]">
-      <div className="flex items-stretch h-16">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 safe-area-pb"
+      style={{
+        background: 'var(--color-surface)',
+        borderTop: '1px solid var(--color-border)',
+        height: '60px',
+      }}
+    >
+      <div className="flex items-stretch h-full">
         {tabs.map((tab) => {
           const active = activeTab === tab.id;
+
           return (
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-all active:scale-95 ${
-                active ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'
-              }`}
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 relative"
+              style={{
+                minHeight: '44px',
+                color: active ? 'var(--color-primary)' : 'var(--color-text-muted)',
+              }}
             >
-              <div className={`flex items-center justify-center w-10 h-6 rounded-full transition-colors ${
-                active ? 'bg-blue-100' : ''
-              }`}>
+              {/* Active indicator: 28×4px pill at top */}
+              {active && (
+                <span
+                  className="absolute top-0 left-1/2 -translate-x-1/2"
+                  style={{
+                    width: '28px',
+                    height: '4px',
+                    borderRadius: '0 0 var(--radius-sm) var(--radius-sm)',
+                    background: 'var(--color-primary)',
+                  }}
+                />
+              )}
+
+              {/* Icon */}
+              <span
+                style={{
+                  color: active ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
                 {ICONS[tab.id](active)}
-              </div>
-              <span className={`text-[10px] font-medium ${active ? 'text-blue-600' : 'text-gray-400'}`}>
+              </span>
+
+              {/* Label */}
+              <span
+                style={{
+                  fontSize: '10px',
+                  fontWeight: active ? 'var(--font-weight-semibold)' : 'var(--font-weight-normal)',
+                  color: active ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                  lineHeight: 1,
+                }}
+              >
                 {t(tab.labelKey)}
               </span>
             </button>

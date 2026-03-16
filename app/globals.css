@@ -1,57 +1,111 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+/* ─── Design Tokens ──────────────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Colors */
+  --color-primary:          #1A56DB;
+  --color-primary-hover:    #1447C0;
+  --color-surface:          #FFFFFF;
+  --color-bg:               #F4F5F7;
+  --color-border:           #E2E5EA;
+  --color-text-primary:     #111827;
+  --color-text-secondary:   #6B7280;
+  --color-text-muted:       #9CA3AF;
+  --color-live:             #16A34A;
+  --color-warning:          #F59E0B;
+  --color-error:            #DC2626;
+  /* Transport type colors */
+  --color-bus:              #1A56DB;
+  --color-tram:             #DC2626;
+  --color-trolley:          #059669;
+  --color-metro:            #7C3AED;
+  /* Spacing (8pt grid) */
+  --space-1:  4px;  --space-2:  8px;  --space-3:  12px; --space-4:  16px;
+  --space-5:  20px; --space-6:  24px; --space-8:  32px; --space-10: 40px;
+  --space-12: 48px;
+  /* Typography */
+  --font-size-xs:          11px;
+  --font-size-sm:          13px;
+  --font-size-base:        15px;
+  --font-size-lg:          17px;
+  --font-size-xl:          20px;
+  --font-weight-normal:    400;
+  --font-weight-medium:    500;
+  --font-weight-semibold:  600;
+  --font-weight-bold:      700;
+  /* Radius */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-full: 999px;
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06);
+  /* Legacy aliases */
+  --background: var(--color-surface);
+  --foreground: var(--color-text-primary);
 }
 
+/* ─── Tailwind v4 theme extension ───────────────────────────────────────── */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  /* Brand */
+  --color-primary:      #1A56DB;
+  --color-primary-dark: #1447C0;
+  /* Surfaces */
+  --color-surface:  #FFFFFF;
+  --color-page:     #F4F5F7;
+  --color-outline:  #E2E5EA;
+  /* Text */
+  --color-txt-primary:   #111827;
+  --color-txt-secondary: #6B7280;
+  --color-txt-muted:     #9CA3AF;
+  /* Status */
+  --color-live:    #16A34A;
+  --color-warn:    #F59E0B;
+  --color-danger:  #DC2626;
+  /* Transport types */
+  --color-bus:     #1A56DB;
+  --color-tram:    #DC2626;
+  --color-trolley: #059669;
+  --color-metro:   #7C3AED;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
   font-family: Arial, Helvetica, sans-serif;
+  font-size: var(--font-size-base);
 }
 
-/* Safe area support for mobile notches and home bars */
-.safe-area-pt {
-  padding-top: env(safe-area-inset-top, 0px);
-}
-.safe-area-pb {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+/* ─── Focus ring (brand-aligned) ────────────────────────────────────────── */
+:focus-visible {
+  outline: 3px solid rgba(26, 86, 219, 0.3);
+  outline-offset: 2px;
 }
 
-/* Hide scrollbar but keep scrolling */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+/* ─── Button base transitions and press state ───────────────────────────── */
+button, a {
+  transition: background-color 150ms ease, color 150ms ease,
+              box-shadow 150ms ease, border-color 150ms ease;
 }
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
+button:not(:disabled):active { transform: scale(0.97); transition: transform 100ms ease; }
+button:disabled               { opacity: 0.4; cursor: not-allowed; }
 
-/* Pulse animation for user location dot */
-@keyframes pulse-ring {
-  0% { transform: scale(0.8); opacity: 1; }
-  100% { transform: scale(2.5); opacity: 0; }
-}
+/* ─── Safe area helpers ──────────────────────────────────────────────────── */
+.safe-area-pt { padding-top: env(safe-area-inset-top, 0px); }
+.safe-area-pb { padding-bottom: env(safe-area-inset-bottom, 0px); }
 
-.pulse-animation::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: rgba(59, 130, 246, 0.4);
-  animation: pulse-ring 1.5s ease-out infinite;
-}
+/* ─── Hide scrollbar ─────────────────────────────────────────────────────── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Line clamp */
+/* ─── Line clamp ─────────────────────────────────────────────────────────── */
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -59,13 +113,27 @@ body {
   overflow: hidden;
 }
 
-/* Prevent body scroll on mobile */
-html, body {
-  height: 100%;
-  overflow: hidden;
+/* ─── Prevent body scroll on mobile ─────────────────────────────────────── */
+html, body { height: 100%; overflow: hidden; }
+* { -webkit-tap-highlight-color: transparent; }
+
+/* ─── User location pulsing ring ────────────────────────────────────────── */
+@keyframes pulse-ring {
+  0%   { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+.pulse-animation::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(26, 86, 219, 0.25);
+  animation: pulse-ring 1.5s ease-out infinite;
 }
 
-/* Smooth tap behaviour on mobile */
-* {
-  -webkit-tap-highlight-color: transparent;
+/* ─── Live indicator: scale pulse ───────────────────────────────────────── */
+@keyframes live-pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.3); }
 }
+.animate-live { animation: live-pulse 2s ease-in-out infinite; }

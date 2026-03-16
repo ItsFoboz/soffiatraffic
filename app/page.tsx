@@ -66,8 +66,8 @@ export default function Home() {
     <main className="fixed inset-0 flex flex-col bg-gray-50">
       <Header />
 
-      {/* Content area between header (56px) and bottom nav (64px) */}
-      <div className="absolute inset-0 top-[56px] bottom-[64px]">
+      {/* Content area between header (52px) and bottom nav (60px) */}
+      <div className="absolute inset-0 top-[52px] bottom-[60px]">
         {/* Map tab always mounted */}
         <div className={`absolute inset-0 ${activeTab === 'map' ? 'z-10' : 'z-0 pointer-events-none opacity-0'}`}>
           <MapTab

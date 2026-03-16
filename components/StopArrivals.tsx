@@ -6,161 +6,155 @@ import type { StopLine } from '@/app/api/stop-lines/route';
 import { useT } from './TranslationContext';
 
 const TYPE_COLOR: Record<VehicleType, string> = {
-  bus: '#2563EB',
-  tram: '#DC2626',
-  trolley: '#16A34A',
-  metro: '#7C3AED',
+  bus:     'var(--color-bus)',
+  tram:    'var(--color-tram)',
+  trolley: 'var(--color-trolley)',
+  metro:   'var(--color-metro)',
 };
 
 const TYPE_EMOJI: Record<VehicleType, string> = {
-  bus: '🚌',
-  tram: '🚊',
-  trolley: '🚎',
-  metro: '🚇',
+  bus: '🚌', tram: '🚊', trolley: '🚎', metro: '🚇',
 };
 
-interface LineRouteStop {
-  id: string;
-  code: string;
-  name: string;
-  lat: number;
-  lng: number;
-}
-
-interface StopArrivalsProps {
-  stop: Stop;
-  onClose: () => void;
-}
+interface LineRouteStop { id: string; code: string; name: string; lat: number; lng: number; }
+interface StopArrivalsProps { stop: Stop; onClose: () => void; }
 
 export default function StopArrivals({ stop, onClose }: StopArrivalsProps) {
   const { t } = useT();
   const [tab, setTab] = useState<'arrivals' | 'lines'>('arrivals');
 
-  // Arrivals state
   const [arrivals, setArrivals] = useState<ArrivalTime[]>([]);
   const [arrivalsLoading, setArrivalsLoading] = useState(true);
   const [arrivalsError, setArrivalsError] = useState(false);
 
-  // Lines state
   const [stopLines, setStopLines] = useState<StopLine[]>([]);
   const [linesLoading, setLinesLoading] = useState(false);
   const [linesError, setLinesError] = useState(false);
   const [linesFetched, setLinesFetched] = useState(false);
 
-  // Line detail state
   const [selectedLine, setSelectedLine] = useState<StopLine | null>(null);
   const [lineStops, setLineStops] = useState<LineRouteStop[]>([]);
   const [lineDetailLoading, setLineDetailLoading] = useState(false);
 
   const fetchArrivals = async () => {
-    setArrivalsLoading(true);
-    setArrivalsError(false);
+    setArrivalsLoading(true); setArrivalsError(false);
     try {
       const res = await fetch(`/api/arrivals?stopCode=${encodeURIComponent(stop.code)}`);
       const data = await res.json();
       setArrivals(data.arrivals ?? []);
-    } catch {
-      setArrivalsError(true);
-    } finally {
-      setArrivalsLoading(false);
-    }
+    } catch { setArrivalsError(true); }
+    finally { setArrivalsLoading(false); }
   };
 
   const fetchLines = async () => {
-    setLinesLoading(true);
-    setLinesError(false);
+    setLinesLoading(true); setLinesError(false);
     try {
       const params = new URLSearchParams({ stopCode: stop.code });
       if (stop.id) params.set('stopId', stop.id);
       const res = await fetch(`/api/stop-lines?${params}`);
       const data = await res.json();
       setStopLines(data.lines ?? []);
-    } catch {
-      setLinesError(true);
-    } finally {
-      setLinesLoading(false);
-      setLinesFetched(true);
-    }
+    } catch { setLinesError(true); }
+    finally { setLinesLoading(false); setLinesFetched(true); }
   };
 
   const fetchLineDetail = async (line: StopLine) => {
-    setSelectedLine(line);
-    setLineDetailLoading(true);
-    setLineStops([]);
+    setSelectedLine(line); setLineDetailLoading(true); setLineStops([]);
     try {
       const res = await fetch(`/api/line-route?routeId=${encodeURIComponent(line.routeId)}`);
       const data = await res.json();
       setLineStops(data.stops ?? []);
-    } catch {
-      setLineStops([]);
-    } finally {
-      setLineDetailLoading(false);
-    }
+    } catch { setLineStops([]); }
+    finally { setLineDetailLoading(false); }
   };
 
   useEffect(() => {
     fetchArrivals();
-    const interval = setInterval(fetchArrivals, 30000);
-    return () => clearInterval(interval);
+    const id = setInterval(fetchArrivals, 30000);
+    return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stop.code]);
 
-  // Fetch lines when tab switches to 'lines' (once per stop)
   useEffect(() => {
-    if (tab === 'lines' && !linesFetched) {
-      fetchLines();
-    }
+    if (tab === 'lines' && !linesFetched) fetchLines();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, stop.code]);
 
-  // Reset per-stop state when stop changes
   useEffect(() => {
-    setLinesFetched(false);
-    setStopLines([]);
-    setSelectedLine(null);
-    setLineStops([]);
+    setLinesFetched(false); setStopLines([]); setSelectedLine(null); setLineStops([]);
   }, [stop.code]);
 
+  const hasLive = arrivals.some((a) => a.isRealtime);
   const isMetroStop = stop.type === 'metro' || stop.id?.startsWith('M');
 
   return (
-    <div className="bg-white rounded-t-3xl shadow-2xl border-t border-gray-100 max-h-[70vh] flex flex-col">
+    <div
+      className="max-h-[70vh] flex flex-col"
+      style={{
+        background: 'var(--color-surface)',
+        borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
+        boxShadow: '0 -4px 24px rgba(0,0,0,0.12)',
+        borderTop: '1px solid var(--color-border)',
+      }}
+    >
       {/* Drag handle */}
-      <div className="flex justify-center pt-3 pb-1">
-        <div className="w-10 h-1 rounded-full bg-gray-200" />
+      <div className="flex justify-center pt-2 pb-0">
+        <div className="w-9 h-1 rounded-full" style={{ background: 'var(--color-border)', marginTop: '8px' }} />
       </div>
 
-      {/* Header */}
-      <div className="flex items-start justify-between px-4 pt-1 pb-2">
-        <div className="flex-1 min-w-0">
-          <h2 className="font-bold text-gray-900 text-base leading-tight truncate">{stop.name}</h2>
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
+      {/* Header — stop name + badges + close */}
+      <div className="flex items-start justify-between px-5 pt-3 pb-3">
+        <div className="flex-1 min-w-0 pr-2">
+          <h2
+            className="font-bold leading-snug truncate"
+            style={{ fontSize: 'var(--font-size-lg)', color: 'var(--color-text-primary)' }}
+          >
+            {stop.name}
+          </h2>
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             {stop.code && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 rounded-md px-2 py-0.5">
+              <span
+                className="inline-flex items-center gap-1 rounded-md px-2 py-0.5"
+                style={{
+                  fontSize: 'var(--font-size-xs)',
+                  color: 'var(--color-text-muted)',
+                  background: 'var(--color-bg)',
+                  fontWeight: 'var(--font-weight-medium)',
+                }}
+              >
                 {t('stop.code')}: {stop.code}
               </span>
             )}
             {stop.type && (
               <span
-                className="inline-flex items-center gap-1 text-[11px] font-medium rounded-md px-2 py-0.5"
-                style={{ background: TYPE_COLOR[stop.type] + '1a', color: TYPE_COLOR[stop.type] }}
+                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-white"
+                style={{
+                  fontSize: 'var(--font-size-xs)',
+                  fontWeight: 'var(--font-weight-semibold)',
+                  background: TYPE_COLOR[stop.type],
+                }}
               >
                 {TYPE_EMOJI[stop.type]} {stop.type.charAt(0).toUpperCase() + stop.type.slice(1)}
               </span>
             )}
-            {arrivals.some(a => a.isRealtime) && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-700 bg-green-50 rounded-md px-2 py-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block animate-pulse" />
+            {hasLive && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5"
+                style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-live)', background: '#f0fdf4', fontWeight: 'var(--font-weight-semibold)' }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full inline-block animate-live" style={{ background: 'var(--color-live)' }} />
                 Live
               </span>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-1 ml-3 flex-shrink-0">
+
+        <div className="flex items-center gap-1 flex-shrink-0">
           {tab === 'arrivals' && (
             <button
               onClick={fetchArrivals}
-              className="p-1.5 rounded-full hover:bg-gray-100 transition-colors text-gray-400 hover:text-blue-600"
+              className="p-1.5 rounded-full hover:bg-gray-100"
+              style={{ color: 'var(--color-text-muted)' }}
               aria-label="Refresh"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -170,108 +164,141 @@ export default function StopArrivals({ stop, onClose }: StopArrivalsProps) {
           )}
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded-full hover:bg-gray-100"
+            style={{ color: 'var(--color-text-muted)' }}
             aria-label="Close"
           >
-            <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-gray-100 px-4">
-        <button
-          onClick={() => { setTab('arrivals'); setSelectedLine(null); }}
-          className={`flex-1 py-2 text-sm font-semibold border-b-2 transition-colors ${
-            tab === 'arrivals'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          {t('stop.arrivals') || 'Arrivals'}
-        </button>
-        <button
-          onClick={() => { setTab('lines'); setSelectedLine(null); }}
-          className={`flex-1 py-2 text-sm font-semibold border-b-2 transition-colors ${
-            tab === 'lines'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Lines
-        </button>
+      {/* Tabs — underline style */}
+      <div className="flex px-5" style={{ borderBottom: '1px solid var(--color-border)' }}>
+        {(['arrivals', 'lines'] as const).map((id) => (
+          <button
+            key={id}
+            onClick={() => { setTab(id); setSelectedLine(null); }}
+            className="flex-1 py-2.5"
+            style={{
+              fontSize: 'var(--font-size-sm)',
+              fontWeight: 'var(--font-weight-semibold)',
+              color: tab === id ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+              borderBottom: tab === id ? '2px solid var(--color-primary)' : '2px solid transparent',
+              marginBottom: '-1px',
+            }}
+          >
+            {id === 'arrivals' ? (t('stop.arrivals') || 'Arrivals') : 'Lines'}
+          </button>
+        ))}
       </div>
 
       {/* Content */}
-      <div className="overflow-y-auto flex-1 px-4 pb-6">
+      <div className="overflow-y-auto flex-1 pb-6">
 
         {/* ── ARRIVALS TAB ── */}
         {tab === 'arrivals' && (
           <>
             {isMetroStop && (
-              <div className="mt-3 flex items-start gap-2 p-3 bg-purple-50 rounded-xl border border-purple-100">
+              <div className="mx-5 mt-3 flex items-start gap-2 p-3 rounded-xl" style={{ background: '#f5f3ff', border: '1px solid #e0d9ff' }}>
                 <span className="text-lg flex-shrink-0">🚇</span>
-                <p className="text-xs text-purple-700">Metro real-time tracking is not available. Check the Lines tab for scheduled services.</p>
+                <p style={{ fontSize: 'var(--font-size-xs)', color: '#5b21b6' }}>Metro real-time tracking is not available. Check the Lines tab for scheduled services.</p>
               </div>
             )}
+
             {arrivalsLoading ? (
               <div className="flex items-center justify-center py-10 gap-2">
-                <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm text-gray-400">{t('stop.loadingArrivals')}</span>
+                <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
+                <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>{t('stop.loadingArrivals')}</span>
               </div>
             ) : arrivalsError ? (
               <div className="text-center py-8">
-                <p className="text-red-500 text-sm">{t('errors.apiError')}</p>
-                <button onClick={fetchArrivals} className="mt-3 text-sm text-blue-600 font-medium hover:underline">
+                <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-error)' }}>{t('errors.apiError')}</p>
+                <button onClick={fetchArrivals} className="mt-3" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-primary)', fontWeight: 'var(--font-weight-medium)' }}>
                   {t('errors.retry')}
                 </button>
               </div>
             ) : arrivals.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-gray-400 text-sm">{t('stop.noArrivals')}</p>
-                <button onClick={() => setTab('lines')} className="mt-2 text-xs text-blue-500 hover:underline">
+                <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>{t('stop.noArrivals')}</p>
+                <button onClick={() => setTab('lines')} className="mt-2" style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-primary)' }}>
                   View lines at this stop →
                 </button>
               </div>
             ) : (
-              <div className="space-y-2 mt-2">
+              <div>
                 {arrivals.map((a, i) => {
                   const urgent = a.minutes <= 1;
-                  const soon = a.minutes <= 4;
+                  const soon   = a.minutes <= 4;
+                  const minutesValid = typeof a.minutes === 'number' && !isNaN(a.minutes);
+
                   return (
                     <div
                       key={i}
-                      className={`flex items-center gap-3 p-3 rounded-2xl border transition-colors ${
-                        urgent ? 'bg-red-50 border-red-100' : soon ? 'bg-orange-50 border-orange-100' : 'bg-gray-50 border-transparent'
-                      }`}
+                      className="flex items-center gap-4"
+                      style={{
+                        padding: '16px 20px',
+                        borderBottom: '1px solid var(--color-border)',
+                        background: urgent ? '#fef2f2' : soon ? '#fff7ed' : 'transparent',
+                        borderLeft: urgent ? '3px solid var(--color-error)' : soon ? '3px solid var(--color-warning)' : '3px solid transparent',
+                      }}
                     >
+                      {/* Line badge: square with rounded corners */}
                       <div
-                        className="w-11 h-11 rounded-xl flex flex-col items-center justify-center flex-shrink-0 shadow-sm"
-                        style={{ background: TYPE_COLOR[a.type] }}
+                        className="flex flex-col items-center justify-center flex-shrink-0"
+                        style={{
+                          width: '44px',
+                          height: '44px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: TYPE_COLOR[a.type],
+                          boxShadow: 'var(--shadow-sm)',
+                        }}
                       >
                         <span className="text-base leading-none">{TYPE_EMOJI[a.type]}</span>
-                        <span className="text-white text-[10px] font-bold leading-tight mt-0.5">{a.line}</span>
+                        <span className="text-white leading-tight mt-0.5" style={{ fontSize: '10px', fontWeight: 'var(--font-weight-bold)' }}>{a.line}</span>
                       </div>
+
+                      {/* Direction + realtime */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-800 truncate">{a.direction || '—'}</p>
+                        <p
+                          className="truncate"
+                          style={{
+                            fontSize: 'var(--font-size-base)',
+                            fontWeight: 'var(--font-weight-medium)',
+                            color: a.direction ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
+                          }}
+                        >
+                          {a.direction || 'Unknown direction'}
+                        </p>
                         {a.isRealtime && (
-                          <p className="text-[11px] text-green-600 flex items-center gap-1 mt-0.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block animate-pulse" />
+                          <p className="flex items-center gap-1 mt-0.5" style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-live)' }}>
+                            <span className="w-1.5 h-1.5 rounded-full inline-block animate-live" style={{ background: 'var(--color-live)' }} />
                             Real-time
                           </p>
                         )}
                       </div>
+
+                      {/* Arrival time */}
                       <div className="text-right flex-shrink-0">
-                        {a.minutes === 0 ? (
-                          <p className="text-sm font-bold text-red-600">Now</p>
+                        {!minutesValid ? (
+                          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>No data</p>
+                        ) : a.minutes === 0 ? (
+                          <p style={{ fontSize: 'var(--font-size-base)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-error)' }}>Now</p>
                         ) : (
                           <>
-                            <p className={`text-2xl font-bold leading-none ${urgent ? 'text-red-600' : soon ? 'text-orange-500' : 'text-gray-800'}`}>
+                            <p
+                              style={{
+                                fontSize: '22px',
+                                fontWeight: 'var(--font-weight-bold)',
+                                lineHeight: 1,
+                                color: urgent ? 'var(--color-error)' : soon ? 'var(--color-warning)' : 'var(--color-primary)',
+                              }}
+                            >
                               {a.minutes}
                             </p>
-                            <p className="text-[10px] text-gray-400 font-medium">{t('stop.minutes')}</p>
+                            <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', fontWeight: 'var(--font-weight-medium)' }}>{t('stop.minutes')}</p>
                           </>
                         )}
                       </div>
@@ -286,12 +313,12 @@ export default function StopArrivals({ stop, onClose }: StopArrivalsProps) {
         {/* ── LINES TAB ── */}
         {tab === 'lines' && (
           <>
-            {/* Line detail view */}
             {selectedLine ? (
-              <div className="mt-3">
+              <div className="px-5 mt-3">
                 <button
                   onClick={() => setSelectedLine(null)}
-                  className="flex items-center gap-1.5 text-sm text-blue-600 hover:underline mb-3"
+                  className="flex items-center gap-1.5 mb-3"
+                  style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-primary)' }}
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -299,91 +326,95 @@ export default function StopArrivals({ stop, onClose }: StopArrivalsProps) {
                   Back to lines
                 </button>
 
-                {/* Line header */}
                 <div
-                  className="flex items-center gap-3 p-3 rounded-2xl mb-3"
-                  style={{ background: TYPE_COLOR[selectedLine.type] + '15' }}
+                  className="flex items-center gap-3 p-3 rounded-xl mb-4"
+                  style={{ background: TYPE_COLOR[selectedLine.type] + '18' }}
                 >
                   <div
-                    className="w-12 h-12 rounded-xl flex flex-col items-center justify-center flex-shrink-0 shadow-sm"
-                    style={{ background: TYPE_COLOR[selectedLine.type] }}
+                    className="w-12 h-12 flex flex-col items-center justify-center flex-shrink-0"
+                    style={{ borderRadius: 'var(--radius-md)', background: TYPE_COLOR[selectedLine.type], boxShadow: 'var(--shadow-sm)' }}
                   >
                     <span className="text-lg leading-none">{TYPE_EMOJI[selectedLine.type]}</span>
-                    <span className="text-white text-[11px] font-bold leading-tight mt-0.5">{selectedLine.name}</span>
+                    <span className="text-white leading-tight mt-0.5" style={{ fontSize: '11px', fontWeight: 'var(--font-weight-bold)' }}>{selectedLine.name}</span>
                   </div>
                   <div className="min-w-0">
-                    <p className="font-bold text-gray-900 text-sm capitalize">{selectedLine.type} {selectedLine.name}</p>
+                    <p className="font-bold capitalize" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-primary)' }}>
+                      {selectedLine.type} {selectedLine.name}
+                    </p>
                     {selectedLine.directions.length > 0 && (
-                      <p className="text-xs text-gray-500 truncate mt-0.5">→ {selectedLine.directions.join(' / ')}</p>
+                      <p className="truncate mt-0.5" style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>
+                        → {selectedLine.directions.join(' / ')}
+                      </p>
                     )}
                   </div>
                 </div>
 
-                {/* Route stops */}
                 {lineDetailLoading ? (
                   <div className="flex items-center justify-center py-8 gap-2">
-                    <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-sm text-gray-400">Loading route…</span>
+                    <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
+                    <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>Loading route…</span>
                   </div>
                 ) : lineStops.length === 0 ? (
-                  <p className="text-sm text-gray-400 text-center py-6">Route stops not available right now.</p>
+                  <p className="text-center py-6" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>Route stops not available right now.</p>
                 ) : (
                   <div className="relative">
                     <div className="absolute left-[19px] top-4 bottom-4 w-0.5" style={{ background: TYPE_COLOR[selectedLine.type] + '40' }} />
-                    <div className="space-y-0">
-                      {lineStops.map((s, idx) => {
-                        const isCurrent = s.code === stop.code || s.id === stop.id;
-                        const isFirst = idx === 0;
-                        const isLast = idx === lineStops.length - 1;
-                        return (
-                          <div key={s.id + idx} className="flex items-center gap-3 py-1.5 relative">
-                            <div
-                              className={`w-[10px] h-[10px] rounded-full flex-shrink-0 border-2 z-10 ${
-                                isCurrent ? 'w-[14px] h-[14px] border-[3px]' : ''
-                              } ${isFirst || isLast ? 'w-[12px] h-[12px]' : ''}`}
+                    {lineStops.map((s, idx) => {
+                      const isCurrent = s.code === stop.code || s.id === stop.id;
+                      const isFirst   = idx === 0;
+                      const isLast    = idx === lineStops.length - 1;
+                      return (
+                        <div key={s.id + idx} className="flex items-center gap-3 py-1.5 relative">
+                          <div
+                            className="z-10 flex-shrink-0 rounded-full border-2"
+                            style={{
+                              width:  isCurrent ? '14px' : isFirst || isLast ? '12px' : '10px',
+                              height: isCurrent ? '14px' : isFirst || isLast ? '12px' : '10px',
+                              marginLeft: isCurrent ? '9.5px' : isFirst || isLast ? '10px' : '11px',
+                              background: isCurrent ? TYPE_COLOR[selectedLine.type] : 'white',
+                              borderColor: TYPE_COLOR[selectedLine.type],
+                            }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p
+                              className="truncate"
                               style={{
-                                background: isCurrent ? TYPE_COLOR[selectedLine.type] : 'white',
-                                borderColor: TYPE_COLOR[selectedLine.type],
-                                marginLeft: isCurrent ? 'calc(9.5px)' : isFirst || isLast ? '10px' : '11px',
+                                fontSize: 'var(--font-size-sm)',
+                                fontWeight: isCurrent ? 'var(--font-weight-bold)' : 'var(--font-weight-normal)',
+                                color: 'var(--color-text-primary)',
                               }}
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className={`text-sm truncate ${isCurrent ? 'font-bold text-gray-900' : 'text-gray-700'}`}>
-                                {s.name}
-                                {isCurrent && (
-                                  <span className="ml-2 text-[11px] font-semibold px-1.5 py-0.5 rounded-full text-white" style={{ background: TYPE_COLOR[selectedLine.type] }}>
-                                    Here
-                                  </span>
-                                )}
-                              </p>
-                              {s.code && <p className="text-[11px] text-gray-400">{s.code}</p>}
-                            </div>
+                            >
+                              {s.name}
+                              {isCurrent && (
+                                <span className="ml-2 text-[11px] font-semibold px-1.5 py-0.5 rounded-full text-white" style={{ background: TYPE_COLOR[selectedLine.type] }}>
+                                  Here
+                                </span>
+                              )}
+                            </p>
+                            {s.code && <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>{s.code}</p>}
                           </div>
-                        );
-                      })}
-                    </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
             ) : (
-              // Lines list
-              <>
+              <div className="px-5">
                 {linesLoading ? (
                   <div className="flex items-center justify-center py-10 gap-2">
-                    <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-sm text-gray-400">Loading lines…</span>
+                    <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
+                    <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>Loading lines…</span>
                   </div>
                 ) : linesError ? (
                   <div className="text-center py-8">
-                    <p className="text-red-500 text-sm">{t('errors.apiError')}</p>
-                    <button onClick={fetchLines} className="mt-3 text-sm text-blue-600 font-medium hover:underline">{t('errors.retry')}</button>
+                    <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-error)' }}>{t('errors.apiError')}</p>
+                    <button onClick={fetchLines} className="mt-3" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-primary)', fontWeight: 'var(--font-weight-medium)' }}>{t('errors.retry')}</button>
                   </div>
                 ) : stopLines.length === 0 ? (
-                  <div className="text-center py-8 text-gray-400">
-                    <p className="text-sm">
-                      {isMetroStop
-                        ? 'Metro schedule data is not available in the real-time feed.'
-                        : 'No line data available for this stop right now.'}
+                  <div className="text-center py-8" style={{ color: 'var(--color-text-muted)' }}>
+                    <p style={{ fontSize: 'var(--font-size-sm)' }}>
+                      {isMetroStop ? 'Metro schedule data is not available in the real-time feed.' : 'No line data available for this stop right now.'}
                     </p>
                   </div>
                 ) : (
@@ -392,29 +423,30 @@ export default function StopArrivals({ stop, onClose }: StopArrivalsProps) {
                       <button
                         key={line.routeId}
                         onClick={() => fetchLineDetail(line)}
-                        className="w-full flex items-center gap-3 p-3 rounded-2xl bg-gray-50 border border-transparent hover:border-gray-200 hover:bg-white active:bg-gray-100 transition-all text-left"
+                        className="w-full flex items-center gap-3 p-3 rounded-xl text-left"
+                        style={{ background: 'var(--color-bg)', border: '1px solid transparent' }}
                       >
                         <div
-                          className="w-10 h-10 rounded-xl flex flex-col items-center justify-center flex-shrink-0 shadow-sm"
-                          style={{ background: TYPE_COLOR[line.type] }}
+                          className="w-10 h-10 flex flex-col items-center justify-center flex-shrink-0"
+                          style={{ borderRadius: 'var(--radius-md)', background: TYPE_COLOR[line.type], boxShadow: 'var(--shadow-sm)' }}
                         >
                           <span className="text-sm leading-none">{TYPE_EMOJI[line.type]}</span>
-                          <span className="text-white text-[10px] font-bold leading-tight mt-0.5">{line.name}</span>
+                          <span className="text-white leading-tight mt-0.5" style={{ fontSize: '10px', fontWeight: 'var(--font-weight-bold)' }}>{line.name}</span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 capitalize">{line.type} {line.name}</p>
+                          <p className="capitalize" style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text-primary)' }}>{line.type} {line.name}</p>
                           {line.directions.length > 0 && (
-                            <p className="text-xs text-gray-500 truncate">{line.directions.slice(0, 2).join(' / ')}</p>
+                            <p className="truncate" style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>{line.directions.slice(0, 2).join(' / ')}</p>
                           )}
                         </div>
-                        <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ color: 'var(--color-text-muted)' }}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                         </svg>
                       </button>
                     ))}
                   </div>
                 )}
-              </>
+              </div>
             )}
           </>
         )}
