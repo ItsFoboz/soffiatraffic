@@ -20,25 +20,27 @@ function detectTypeFromRouteId(routeId: string): VehicleType {
 }
 
 // Extract human-readable line number from GTFS route ID
-// e.g. T7 → "7", TB101 → "101", M1 → "M1", 94 → "94"
+// e.g. T7 → "7", TB101 → "101", M1 → "M1", 94 → "94", 94_1 → "94"
 function extractDisplayLine(routeId: string, type: VehicleType): string {
   if (!routeId || routeId === '?') return routeId;
+  // Strip direction/variant suffixes like _0, _1, -A, etc.
+  const base = routeId.split(/[_\-]/)[0];
   // Already clean: pure number or M+number
-  if (/^\d+$/.test(routeId)) return routeId;
-  if (/^M\d+$/i.test(routeId)) return routeId.toUpperCase();
+  if (/^\d+$/.test(base)) return base;
+  if (/^M\d+$/i.test(base)) return base.toUpperCase();
   if (type === 'metro') {
-    const m = routeId.match(/M(\d+)/i);
-    return m ? `M${m[1]}` : routeId;
+    const m = base.match(/M(\d+)/i);
+    return m ? `M${m[1]}` : base;
   }
   if (type === 'trolley') {
-    const m = routeId.match(/^(?:TB|TRL)(\d+.*)/i);
-    return m ? m[1] : routeId;
+    const m = base.match(/^(?:TB|TRL)(\d+.*)/i);
+    return m ? m[1] : base;
   }
   if (type === 'tram') {
-    const m = routeId.match(/^T(\d+.*)/i);
-    return m ? m[1] : routeId;
+    const m = base.match(/^T(\d+.*)/i);
+    return m ? m[1] : base;
   }
-  return routeId;
+  return base;
 }
 
 export async function GET() {

@@ -18,13 +18,25 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>('map');
   const [routeCoords, setRouteCoords] = useState<[number, number][]>([]);
   const [stops, setStops] = useState<Stop[]>([]);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [jumpToStop, setJumpToStop] = useState<Stop | null>(null);
 
-  // Fetch stops once for the stops tab
+  // Fetch stops once
   useEffect(() => {
     fetch('/api/stops')
       .then((r) => r.json())
       .then((d) => { if (Array.isArray(d.stops)) setStops(d.stops); })
       .catch(() => {});
+  }, []);
+
+  // Get user location once
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
+      () => {},
+      { enableHighAccuracy: true }
+    );
   }, []);
 
   const handleRouteFound = useCallback((coords: [number, number][]) => {
@@ -35,7 +47,9 @@ export default function Home() {
     setRouteCoords([]);
   }, []);
 
-  const handleStopSelect = useCallback((_stop: Stop) => {
+  // When user selects a stop from any tab, jump to it on the map
+  const handleStopSelect = useCallback((stop: Stop) => {
+    setJumpToStop(stop);
     setActiveTab('map');
   }, []);
 
@@ -47,7 +61,14 @@ export default function Home() {
       <div className="absolute inset-0 top-[56px] bottom-[64px]">
         {/* Map tab always mounted */}
         <div className={`absolute inset-0 ${activeTab === 'map' ? 'z-10' : 'z-0 pointer-events-none opacity-0'}`}>
-          <MapTab routeCoords={routeCoords} onClearRoute={handleClearRoute} />
+          <MapTab
+            routeCoords={routeCoords}
+            onClearRoute={handleClearRoute}
+            jumpToStop={jumpToStop}
+            onJumpToStopHandled={() => setJumpToStop(null)}
+            stops={stops}
+            userLocation={userLocation}
+          />
         </div>
 
         {/* Routes tab */}
@@ -67,6 +88,7 @@ export default function Home() {
             <StopsTab
               stops={stops}
               onStopSelect={handleStopSelect}
+              userLocation={userLocation}
             />
           </div>
         )}
@@ -74,7 +96,7 @@ export default function Home() {
         {/* Favorites tab */}
         {activeTab === 'favorites' && (
           <div className="absolute inset-0 z-10 bg-gray-50 flex flex-col">
-            <FavoritesTab />
+            <FavoritesTab onStopSelect={handleStopSelect} />
           </div>
         )}
       </div>

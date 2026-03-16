@@ -70,7 +70,11 @@ export function useFavorites() {
 
 // ── FavoritesTab component ───────────────────────────────────
 
-export default function FavoritesTab() {
+interface FavoritesTabProps {
+  onStopSelect?: (stop: Stop) => void;
+}
+
+export default function FavoritesTab({ onStopSelect }: FavoritesTabProps) {
   const { t } = useT();
   const { user } = useAuth();
   const { favorites, removeFavorite } = useFavorites();
@@ -114,7 +118,7 @@ export default function FavoritesTab() {
             {favorites.map((stop) => (
               <div key={stop.id}>
                 <button
-                  onClick={() => setSelectedStop(selectedStop?.id === stop.id ? null : stop)}
+                  onClick={() => onStopSelect ? onStopSelect(stop) : setSelectedStop(selectedStop?.id === stop.id ? null : stop)}
                   className="w-full flex items-center gap-3 p-3 rounded-xl bg-white border border-gray-100 hover:border-amber-200 hover:bg-amber-50 transition-all shadow-sm text-left"
                 >
                   <span className="text-xl">🚏</span>

@@ -27,6 +27,23 @@ interface MapComponentProps {
   centerOnUser?: boolean;
 }
 
+function makeVehicleSvg(color: string, bearing: number, line: string): string {
+  // Adaptive font size based on line label length
+  const len = line.length;
+  const fontSize = len >= 4 ? 7 : len === 3 ? 9 : len === 2 ? 11 : 13;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+    <circle cx="20" cy="20" r="16" fill="${color}" stroke="white" stroke-width="2.5"/>
+    <g transform="rotate(${bearing}, 20, 20)">
+      <polygon points="20,5 16.5,13 20,11 23.5,13" fill="white" opacity="0.95"/>
+    </g>
+    <text x="20" y="25" text-anchor="middle" dominant-baseline="auto"
+      fill="white" font-size="${fontSize}" font-weight="700"
+      font-family="system-ui,-apple-system,sans-serif"
+      style="paint-order:stroke" stroke="${color}" stroke-width="1">${line}</text>
+  </svg>`;
+}
+
 export default function MapComponent({
   vehicles,
   stops,
@@ -46,6 +63,54 @@ export default function MapComponent({
   const routeLayerRef = useRef<import('leaflet').Polyline | null>(null);
   const userMarkerRef = useRef<import('leaflet').Marker | null>(null);
   const initializedRef = useRef(false);
+
+  // Keep refs to latest stop-related props so the zoom handler can access them
+  const stopsRef = useRef(stops);
+  const showStopsRef = useRef(showStops);
+  const selectedStopRef = useRef(selectedStop);
+  const onStopClickRef = useRef(onStopClick);
+  const tRef = useRef(t);
+
+  useEffect(() => { stopsRef.current = stops; }, [stops]);
+  useEffect(() => { showStopsRef.current = showStops; }, [showStops]);
+  useEffect(() => { selectedStopRef.current = selectedStop; }, [selectedStop]);
+  useEffect(() => { onStopClickRef.current = onStopClick; }, [onStopClick]);
+  useEffect(() => { tRef.current = t; }, [t]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const renderStops = useCallback((L: any) => {
+    if (!stopLayerRef.current || !mapRef.current) return;
+    stopLayerRef.current.clearLayers();
+    if (!showStopsRef.current) return;
+
+    const zoom = mapRef.current.getZoom();
+    if (zoom < 13) return;
+
+    const isSmall = zoom < 15;
+
+    for (const stop of stopsRef.current) {
+      const isSelected = selectedStopRef.current?.id === stop.id;
+      const marker = L.circleMarker([stop.lat, stop.lng], {
+        radius: isSelected ? 9 : isSmall ? 4 : 6,
+        fillColor: isSelected ? '#F59E0B' : '#475569',
+        color: 'white',
+        weight: isSelected ? 2.5 : 1.5,
+        fillOpacity: 0.92,
+      });
+
+      marker.bindPopup(`
+        <div class="font-sans p-1">
+          <div class="font-bold text-sm">${stop.name}</div>
+          ${stop.code ? `<div class="text-xs text-gray-500">${tRef.current('stop.code')}: ${stop.code}</div>` : ''}
+        </div>
+      `);
+
+      if (onStopClickRef.current) {
+        marker.on('click', () => onStopClickRef.current!(stop));
+      }
+      marker.addTo(stopLayerRef.current!);
+    }
+  }, []);
 
   const initMap = useCallback(async () => {
     if (initializedRef.current || !containerRef.current) return;
@@ -71,14 +136,17 @@ export default function MapComponent({
     L.control.zoom({ position: 'topright' }).addTo(map);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19,
     }).addTo(map);
 
     vehicleLayerRef.current = L.layerGroup().addTo(map);
     stopLayerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
-  }, []);
+
+    // Re-render stops on zoom changes
+    map.on('zoomend', () => renderStops(L));
+  }, [renderStops]);
 
   // Initialize map
   useEffect(() => {
@@ -102,21 +170,13 @@ export default function MapComponent({
 
       for (const v of vehicles) {
         const color = VEHICLE_COLORS[v.type] ?? '#374151';
-        const bearing = v.bearing ?? 0;
-
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-          <g transform="rotate(${bearing}, 16, 16)">
-            <circle cx="16" cy="16" r="12" fill="${color}" stroke="white" stroke-width="2"/>
-            <polygon points="16,4 12,14 16,12 20,14" fill="white" opacity="0.9"/>
-          </g>
-          <text x="16" y="21" text-anchor="middle" fill="white" font-size="8" font-weight="bold" font-family="sans-serif">${v.line}</text>
-        </svg>`;
+        const svg = makeVehicleSvg(color, v.bearing ?? 0, v.line);
 
         const icon = L.divIcon({
           html: svg,
           className: '',
-          iconSize: [32, 32],
-          iconAnchor: [16, 16],
+          iconSize: [40, 40],
+          iconAnchor: [20, 20],
         });
 
         const typeLabel = t(`vehicle.${v.type}`);
@@ -137,39 +197,9 @@ export default function MapComponent({
 
   // Update stops
   useEffect(() => {
-    if (!mapRef.current || !stopLayerRef.current) return;
-    import('leaflet').then(({ default: L }) => {
-      stopLayerRef.current!.clearLayers();
-      if (!showStops) return;
-
-      const zoom = mapRef.current!.getZoom();
-      if (zoom < 14) return; // Don't show stops when zoomed out
-
-      for (const stop of stops) {
-        const isSelected = selectedStop?.id === stop.id;
-        const icon = L.circleMarker([stop.lat, stop.lng], {
-          radius: isSelected ? 8 : 5,
-          fillColor: isSelected ? '#F59E0B' : '#6B7280',
-          color: 'white',
-          weight: 2,
-          fillOpacity: 0.9,
-        });
-
-        icon.bindPopup(`
-          <div class="font-sans p-1">
-            <div class="font-bold text-sm">${stop.name}</div>
-            ${stop.code ? `<div class="text-xs text-gray-500">${t('stop.code')}: ${stop.code}</div>` : ''}
-          </div>
-        `);
-
-        if (onStopClick) {
-          icon.on('click', () => onStopClick(stop));
-        }
-
-        icon.addTo(stopLayerRef.current!);
-      }
-    });
-  }, [stops, showStops, selectedStop, onStopClick, t]);
+    if (!mapRef.current) return;
+    import('leaflet').then(({ default: L }) => renderStops(L));
+  }, [stops, showStops, selectedStop, onStopClick, renderStops]);
 
   // Update route polyline
   useEffect(() => {
@@ -199,12 +229,15 @@ export default function MapComponent({
         userMarkerRef.current.setLatLng(userLocation);
       } else {
         const icon = L.divIcon({
-          html: `<div class="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-lg pulse-animation"></div>`,
+          html: `<div style="position:relative;width:18px;height:18px">
+            <div style="position:absolute;inset:0;border-radius:50%;background:rgba(59,130,246,0.25);animation:pulse-ring 1.5s ease-out infinite"></div>
+            <div style="position:absolute;inset:3px;border-radius:50%;background:#3B82F6;border:2px solid white;box-shadow:0 0 6px rgba(59,130,246,0.6)"></div>
+          </div>`,
           className: '',
-          iconSize: [16, 16],
-          iconAnchor: [8, 8],
+          iconSize: [18, 18],
+          iconAnchor: [9, 9],
         });
-        userMarkerRef.current = L.marker(userLocation, { icon }).addTo(mapRef.current!);
+        userMarkerRef.current = L.marker(userLocation, { icon, zIndexOffset: 1000 }).addTo(mapRef.current!);
       }
 
       if (centerOnUser) {
@@ -212,20 +245,6 @@ export default function MapComponent({
       }
     });
   }, [userLocation, centerOnUser]);
-
-  // Re-render stops on zoom change
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    const onZoom = () => {
-      // Trigger stop re-render on zoom
-      if (stopLayerRef.current) {
-        stopLayerRef.current.clearLayers();
-      }
-    };
-    map.on('zoomend', onZoom);
-    return () => { map.off('zoomend', onZoom); };
-  }, []);
 
   return (
     <div className="relative w-full h-full">

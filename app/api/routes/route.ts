@@ -34,21 +34,22 @@ function detectTypeFromId(routeId: string): VehicleType {
 
 function extractLineNumber(routeId: string, type: VehicleType): string {
   if (!routeId) return '?';
-  if (/^\d+$/.test(routeId)) return routeId;
-  if (/^M\d+$/i.test(routeId)) return routeId.toUpperCase();
+  const base = routeId.split(/[_\-]/)[0];
+  if (/^\d+$/.test(base)) return base;
+  if (/^M\d+$/i.test(base)) return base.toUpperCase();
   if (type === 'metro') {
-    const m = routeId.match(/M(\d+)/i);
-    return m ? `M${m[1]}` : routeId;
+    const m = base.match(/M(\d+)/i);
+    return m ? `M${m[1]}` : base;
   }
   if (type === 'trolley') {
-    const m = routeId.match(/^(?:TB|TRL)(\d+.*)/i);
-    return m ? m[1] : routeId;
+    const m = base.match(/^(?:TB|TRL)(\d+.*)/i);
+    return m ? m[1] : base;
   }
   if (type === 'tram') {
-    const m = routeId.match(/^T(\d+.*)/i);
-    return m ? m[1] : routeId;
+    const m = base.match(/^T(\d+.*)/i);
+    return m ? m[1] : base;
   }
-  return routeId;
+  return base;
 }
 
 function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
