@@ -173,6 +173,12 @@ export default function MapComponent({
       prevZoom = z;
       if (thresholdCrossed) renderStops(L);
     });
+
+    // Recalculate Leaflet's internal dimensions whenever the container is resized
+    // (e.g. browser address bar appearing/disappearing, stop panel opening)
+    const ro = new ResizeObserver(() => { map.invalidateSize(); });
+    ro.observe(containerRef.current!);
+    (map as unknown as { _resizeObserver: ResizeObserver })._resizeObserver = ro;
   }, [renderStops]);
 
   // Initialize map
@@ -180,6 +186,8 @@ export default function MapComponent({
     initMap();
     return () => {
       if (mapRef.current) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (mapRef.current as any)._resizeObserver?.disconnect();
         mapRef.current.remove();
         mapRef.current = null;
         initializedRef.current = false;
