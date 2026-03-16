@@ -124,6 +124,11 @@ export default function MapTab({
     }
   }, [jumpToStop, onJumpToStopHandled]);
 
+  const handleStopClick = useCallback((stop: Stop) => {
+    setSelectedStop(stop);
+    setShowNearbyPanel(false);
+  }, []);
+
   const handleVehicleClick = useCallback(async (vehicle: Vehicle) => {
     if (!vehicle.routeId) return;
     try {
@@ -167,7 +172,7 @@ export default function MapTab({
           routeCoords={routeCoords}
           vehicleRouteCoords={vehicleRouteCoords}
           userLocation={userLocation}
-          onStopClick={(stop) => { setSelectedStop(stop); setShowNearbyPanel(false); }}
+          onStopClick={handleStopClick}
           onVehicleClick={handleVehicleClick}
           centerOnUser={centerOnUser}
         />

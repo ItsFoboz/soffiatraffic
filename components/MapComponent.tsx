@@ -162,8 +162,16 @@ export default function MapComponent({
     stopLayerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
 
-    // Re-render stops on zoom changes
-    map.on('zoomend', () => renderStops(L));
+    // Only re-render stops when zoom crosses a display threshold to avoid flashing
+    let prevZoom = DEFAULT_ZOOM;
+    map.on('zoomend', () => {
+      const z = map.getZoom();
+      const thresholdCrossed =
+        (prevZoom < 13) !== (z < 13) || // visibility threshold
+        (prevZoom < 15) !== (z < 15);    // size threshold
+      prevZoom = z;
+      if (thresholdCrossed) renderStops(L);
+    });
   }, [renderStops]);
 
   // Initialize map
@@ -232,11 +240,13 @@ export default function MapComponent({
     });
   }, [vehicles, showVehicles, t]);
 
-  // Update stops
+  // Update stops — onStopClick and renderStops are accessed via refs / stable callbacks,
+  // so they must NOT be in the dep array (avoids re-draw on every vehicle-refresh cycle).
   useEffect(() => {
     if (!mapRef.current) return;
     import('leaflet').then(({ default: L }) => renderStops(L));
-  }, [stops, showStops, stopFilter, selectedStop, onStopClick, renderStops]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stops, showStops, stopFilter, selectedStop]);
 
   // Update transit route polyline (from route planner)
   useEffect(() => {
