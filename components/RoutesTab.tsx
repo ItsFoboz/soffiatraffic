@@ -7,10 +7,11 @@ import { useT } from './TranslationContext';
 
 interface RoutesTabProps {
   onRouteFound: (coords: [number, number][]) => void;
+  onClearRoute: () => void;
   onShowOnMap: () => void;
 }
 
-export default function RoutesTab({ onRouteFound, onShowOnMap }: RoutesTabProps) {
+export default function RoutesTab({ onRouteFound, onClearRoute, onShowOnMap }: RoutesTabProps) {
   const { t } = useT();
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [hasRoute, setHasRoute] = useState(false);
@@ -28,6 +29,11 @@ export default function RoutesTab({ onRouteFound, onShowOnMap }: RoutesTabProps)
     setHasRoute(true);
   };
 
+  const handleClearRoute = () => {
+    onClearRoute();
+    setHasRoute(false);
+  };
+
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       <div className="p-4">
@@ -38,6 +44,7 @@ export default function RoutesTab({ onRouteFound, onShowOnMap }: RoutesTabProps)
 
         <RoutePlanner
           onRouteFound={handleRouteFound}
+          onClearRoute={handleClearRoute}
           userLocation={userLocation}
           onFromChange={(_r: SearchResult | null) => { setHasRoute(false); }}
           onToChange={(_r: SearchResult | null) => { setHasRoute(false); }}

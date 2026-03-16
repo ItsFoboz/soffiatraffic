@@ -182,9 +182,9 @@ export default function MapComponent({
       if (routeCoords && routeCoords.length > 1) {
         routeLayerRef.current = L.polyline(routeCoords, {
           color: '#2563EB',
-          weight: 4,
-          opacity: 0.8,
-          dashArray: undefined,
+          weight: 5,
+          opacity: 0.85,
+          dashArray: '8, 4',
         }).addTo(mapRef.current!);
         mapRef.current!.fitBounds(routeLayerRef.current.getBounds(), { padding: [40, 40] });
       }

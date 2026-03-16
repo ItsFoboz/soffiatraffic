@@ -31,6 +31,10 @@ export default function Home() {
     setRouteCoords(coords);
   }, []);
 
+  const handleClearRoute = useCallback(() => {
+    setRouteCoords([]);
+  }, []);
+
   const handleStopSelect = useCallback((_stop: Stop) => {
     setActiveTab('map');
   }, []);
@@ -43,7 +47,7 @@ export default function Home() {
       <div className="absolute inset-0 top-[56px] bottom-[64px]">
         {/* Map tab always mounted */}
         <div className={`absolute inset-0 ${activeTab === 'map' ? 'z-10' : 'z-0 pointer-events-none opacity-0'}`}>
-          <MapTab routeCoords={routeCoords} />
+          <MapTab routeCoords={routeCoords} onClearRoute={handleClearRoute} />
         </div>
 
         {/* Routes tab */}
@@ -51,6 +55,7 @@ export default function Home() {
           <div className="absolute inset-0 z-10 overflow-y-auto bg-gray-50">
             <RoutesTab
               onRouteFound={handleRouteFound}
+              onClearRoute={handleClearRoute}
               onShowOnMap={() => setActiveTab('map')}
             />
           </div>

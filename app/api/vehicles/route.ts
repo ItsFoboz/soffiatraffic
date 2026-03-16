@@ -13,10 +13,32 @@ function detectTypeFromRouteId(routeId: string): VehicleType {
   // Sofia Traffic route ID conventions: T=tram, TB=trolley, M=metro, else bus
   if (!routeId) return 'bus';
   const upper = routeId.toUpperCase();
-  if (upper.startsWith('M')) return 'metro';
+  if (upper.startsWith('M') && /^M\d/i.test(routeId)) return 'metro';
   if (upper.startsWith('TB') || upper.startsWith('TRL')) return 'trolley';
-  if (upper.startsWith('T') && !upper.startsWith('TR')) return 'tram';
+  if (upper.startsWith('T') && /^T\d/i.test(routeId)) return 'tram';
   return 'bus';
+}
+
+// Extract human-readable line number from GTFS route ID
+// e.g. T7 → "7", TB101 → "101", M1 → "M1", 94 → "94"
+function extractDisplayLine(routeId: string, type: VehicleType): string {
+  if (!routeId || routeId === '?') return routeId;
+  // Already clean: pure number or M+number
+  if (/^\d+$/.test(routeId)) return routeId;
+  if (/^M\d+$/i.test(routeId)) return routeId.toUpperCase();
+  if (type === 'metro') {
+    const m = routeId.match(/M(\d+)/i);
+    return m ? `M${m[1]}` : routeId;
+  }
+  if (type === 'trolley') {
+    const m = routeId.match(/^(?:TB|TRL)(\d+.*)/i);
+    return m ? m[1] : routeId;
+  }
+  if (type === 'tram') {
+    const m = routeId.match(/^T(\d+.*)/i);
+    return m ? m[1] : routeId;
+  }
+  return routeId;
 }
 
 export async function GET() {
@@ -52,13 +74,14 @@ export async function GET() {
           ? (ROUTE_TYPE_MAP[String(routeType)] ?? detectTypeFromRouteId(routeId))
           : detectTypeFromRouteId(routeId);
 
+        const rawLine = vp.trip?.routeId ?? vp.trip?.route_id ?? '?';
         vehicles.push({
           id: entity.id ?? String(Math.random()),
           lat: vp.position.latitude,
           lng: vp.position.longitude,
           bearing: vp.position.bearing,
           speed: vp.position.speed ? Math.round(vp.position.speed * 3.6) : undefined,
-          line: vp.trip?.routeId ?? vp.trip?.route_id ?? '?',
+          line: extractDisplayLine(rawLine, type),
           type,
           tripId: vp.trip?.tripId ?? vp.trip?.trip_id,
           directionHeadsign: vp.trip?.directionHeadsign ?? vp.trip?.direction_headsign,
@@ -88,7 +111,7 @@ export async function GET() {
         lng: vp.position.longitude,
         bearing: vp.position.bearing ?? undefined,
         speed: vp.position.speed ? Math.round(vp.position.speed * 3.6) : undefined,
-        line: routeId,
+        line: extractDisplayLine(routeId, type),
         type,
         tripId: vp.trip?.tripId ?? undefined,
         timestamp: typeof vp.timestamp === 'number' ? vp.timestamp : undefined,

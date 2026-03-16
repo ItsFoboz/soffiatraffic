@@ -58,3 +58,24 @@ export interface SearchResult {
   lng: number;
   type: 'stop' | 'place';
 }
+
+export interface TransitStop {
+  id: string;
+  code: string;
+  name: string;
+  lat: number;
+  lng: number;
+}
+
+export interface TransitRouteResult {
+  line: string;
+  type: VehicleType;
+  boardStop: TransitStop;
+  alightStop: TransitStop;
+  stops: TransitStop[];
+  geometry: [number, number][];
+  walkToStop: number;   // meters
+  walkFromStop: number; // meters
+  duration: number;     // total minutes
+  numStops: number;
+}

@@ -23,9 +23,10 @@ type FilterOption = 'all' | VehicleType;
 
 interface MapTabProps {
   routeCoords?: [number, number][];
+  onClearRoute?: () => void;
 }
 
-export default function MapTab({ routeCoords }: MapTabProps) {
+export default function MapTab({ routeCoords, onClearRoute }: MapTabProps) {
   const { t } = useT();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [stops, setStops] = useState<Stop[]>([]);
@@ -137,6 +138,21 @@ export default function MapTab({ routeCoords }: MapTabProps) {
           )}
         </div>
       </div>
+
+      {/* Clear route banner */}
+      {routeCoords && routeCoords.length > 1 && onClearRoute && (
+        <div className="absolute top-16 left-3 right-3 z-10 flex justify-center pointer-events-none">
+          <button
+            onClick={onClearRoute}
+            className="pointer-events-auto flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-md border border-gray-200 text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Clear route
+          </button>
+        </div>
+      )}
 
       {/* Right side buttons */}
       <div className="absolute right-3 bottom-24 z-10 flex flex-col gap-2">
