@@ -1,0 +1,85 @@
+{
+  "app": {
+    "title": "Sofia Traffic",
+    "subtitle": "Real-time public transport"
+  },
+  "nav": {
+    "map": "Map",
+    "routes": "Routes",
+    "stops": "Stops",
+    "favorites": "Favorites"
+  },
+  "search": {
+    "from": "From (start)",
+    "to": "To (destination)",
+    "fromPlaceholder": "e.g. NDK, Serdika...",
+    "toPlaceholder": "e.g. Airport, Eagle Bridge...",
+    "search": "Find route",
+    "myLocation": "My location",
+    "searching": "Searching...",
+    "noResults": "No results found",
+    "stopSearch": "Search for stop...",
+    "clear": "Clear"
+  },
+  "map": {
+    "vehicles": "Vehicles",
+    "stops": "Stops",
+    "loading": "Loading map...",
+    "liveTracking": "Live tracking",
+    "showVehicles": "Show vehicles",
+    "hideVehicles": "Hide vehicles",
+    "layers": "Layers",
+    "centerLocation": "Center my location",
+    "locationError": "Could not get location"
+  },
+  "vehicle": {
+    "bus": "Bus",
+    "tram": "Tram",
+    "trolley": "Trolleybus",
+    "metro": "Metro",
+    "line": "Line",
+    "direction": "Direction",
+    "speed": "Speed",
+    "kmh": "km/h",
+    "lastUpdate": "Last updated"
+  },
+  "stop": {
+    "arrivals": "Arrivals",
+    "noArrivals": "No arrival information",
+    "minutes": "min",
+    "arriving": "Arriving",
+    "loadingArrivals": "Loading arrivals...",
+    "code": "Stop code",
+    "nearbyStops": "Nearby stops"
+  },
+  "route": {
+    "departure": "Departure",
+    "arrival": "Arrival",
+    "duration": "Duration",
+    "transfers": "Transfers",
+    "walk": "Walk",
+    "minutes": "min",
+    "noRoutes": "No routes found",
+    "tryAgain": "Try again",
+    "via": "via",
+    "step": "Step"
+  },
+  "errors": {
+    "loadFailed": "Failed to load data",
+    "networkError": "Network error. Please check your internet connection.",
+    "apiError": "Error fetching data",
+    "retry": "Retry"
+  },
+  "settings": {
+    "language": "Language",
+    "theme": "Theme",
+    "notifications": "Notifications"
+  },
+  "filter": {
+    "all": "All",
+    "bus": "Bus",
+    "tram": "Tram",
+    "trolley": "Trolley",
+    "metro": "Metro"
+  }
+}
