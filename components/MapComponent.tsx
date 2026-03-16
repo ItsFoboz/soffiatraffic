@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
+import 'leaflet/dist/leaflet.css';
 import type { Vehicle, Stop } from '@/lib/types';
 import { useT } from './TranslationContext';
 
@@ -314,10 +315,6 @@ export default function MapComponent({
 
   return (
     <div className="relative w-full h-full">
-      <link
-        rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
-      />
       <div ref={containerRef} className="w-full h-full" />
     </div>
   );
