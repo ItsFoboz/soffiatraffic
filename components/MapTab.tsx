@@ -162,6 +162,7 @@ export default function MapTab({
           stops={stops}
           showVehicles={showVehicles}
           showStops={showStops}
+          stopFilter={filter}
           selectedStop={selectedStop}
           routeCoords={routeCoords}
           vehicleRouteCoords={vehicleRouteCoords}

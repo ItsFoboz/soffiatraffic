@@ -28,7 +28,8 @@ export default function Header() {
       <div className="flex items-center justify-between px-4 py-3">
         {/* App title */}
         <div className="flex items-center gap-2">
-          <span className="text-2xl">🚌</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="Sofia Traffic" className="w-8 h-8 rounded-md flex-shrink-0" />
           <div>
             <h1 className="text-base font-bold leading-tight">{t('app.title')}</h1>
             <p className="text-[10px] text-blue-200 leading-tight">{t('app.subtitle')}</p>

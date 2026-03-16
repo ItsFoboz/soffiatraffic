@@ -13,6 +13,7 @@ export async function GET() {
       nameBg: s.name,
       lat: s.lat,
       lng: s.lng,
+      type: s.type,
       lines: [],
     }));
 

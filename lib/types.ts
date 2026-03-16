@@ -21,6 +21,7 @@ export interface Stop {
   nameBg?: string;
   lat: number;
   lng: number;
+  type?: VehicleType;
   lines?: string[];
 }
 

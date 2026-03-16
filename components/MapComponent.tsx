@@ -15,11 +15,20 @@ const VEHICLE_COLORS: Record<string, string> = {
   metro: '#7C3AED',
 };
 
+const STOP_COLORS: Record<string, string> = {
+  bus: '#2563EB',
+  tram: '#DC2626',
+  trolley: '#16A34A',
+  metro: '#7C3AED',
+  default: '#475569',
+};
+
 interface MapComponentProps {
   vehicles: Vehicle[];
   stops: Stop[];
   showVehicles: boolean;
   showStops: boolean;
+  stopFilter?: string; // 'all' | VehicleType — filters which stop types are visible
   selectedStop?: Stop | null;
   routeCoords?: [number, number][];
   vehicleRouteCoords?: [number, number][];
@@ -51,6 +60,7 @@ export default function MapComponent({
   stops,
   showVehicles,
   showStops,
+  stopFilter = 'all',
   selectedStop,
   routeCoords,
   vehicleRouteCoords,
@@ -72,6 +82,7 @@ export default function MapComponent({
   // Keep refs to latest stop-related props so the zoom handler can access them
   const stopsRef = useRef(stops);
   const showStopsRef = useRef(showStops);
+  const stopFilterRef = useRef(stopFilter);
   const selectedStopRef = useRef(selectedStop);
   const onStopClickRef = useRef(onStopClick);
   const onVehicleClickRef = useRef(onVehicleClick);
@@ -79,6 +90,7 @@ export default function MapComponent({
 
   useEffect(() => { stopsRef.current = stops; }, [stops]);
   useEffect(() => { showStopsRef.current = showStops; }, [showStops]);
+  useEffect(() => { stopFilterRef.current = stopFilter; }, [stopFilter]);
   useEffect(() => { selectedStopRef.current = selectedStop; }, [selectedStop]);
   useEffect(() => { onStopClickRef.current = onStopClick; }, [onStopClick]);
   useEffect(() => { onVehicleClickRef.current = onVehicleClick; }, [onVehicleClick]);
@@ -94,23 +106,22 @@ export default function MapComponent({
     if (zoom < 13) return;
 
     const isSmall = zoom < 15;
+    const activeFilter = stopFilterRef.current;
 
     for (const stop of stopsRef.current) {
+      // Filter by type when a specific type is selected
+      if (activeFilter !== 'all' && stop.type && stop.type !== activeFilter) continue;
+
       const isSelected = selectedStopRef.current?.id === stop.id;
+      const stopColor = stop.type ? STOP_COLORS[stop.type] : STOP_COLORS.default;
+
       const marker = L.circleMarker([stop.lat, stop.lng], {
         radius: isSelected ? 9 : isSmall ? 4 : 6,
-        fillColor: isSelected ? '#F59E0B' : '#475569',
+        fillColor: isSelected ? '#F59E0B' : stopColor,
         color: 'white',
         weight: isSelected ? 2.5 : 1.5,
-        fillOpacity: 0.92,
+        fillOpacity: isSelected ? 1 : 0.85,
       });
-
-      marker.bindPopup(`
-        <div class="font-sans p-1">
-          <div class="font-bold text-sm">${stop.name}</div>
-          ${stop.code ? `<div class="text-xs text-gray-500">${tRef.current('stop.code')}: ${stop.code}</div>` : ''}
-        </div>
-      `);
 
       if (onStopClickRef.current) {
         marker.on('click', () => onStopClickRef.current!(stop));
@@ -225,7 +236,7 @@ export default function MapComponent({
   useEffect(() => {
     if (!mapRef.current) return;
     import('leaflet').then(({ default: L }) => renderStops(L));
-  }, [stops, showStops, selectedStop, onStopClick, renderStops]);
+  }, [stops, showStops, stopFilter, selectedStop, onStopClick, renderStops]);
 
   // Update transit route polyline (from route planner)
   useEffect(() => {
