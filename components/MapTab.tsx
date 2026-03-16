@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import type { Vehicle, Stop, VehicleType } from '@/lib/types';
+import type { Vehicle, Stop, VehicleType, TransitRouteResult } from '@/lib/types';
 import { useT } from './TranslationContext';
 import VehicleFilter from './VehicleFilter';
 import StopArrivals from './StopArrivals';
+import NavigationPanel from './NavigationPanel';
 
 const MapComponent = dynamic(() => import('./MapComponent'), {
   ssr: false,
@@ -29,6 +30,13 @@ function distanceM(lat1: number, lng1: number, lat2: number, lng2: number) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+interface ActiveNavigation {
+  route: TransitRouteResult;
+  destName: string;
+  destLat: number;
+  destLng: number;
+}
+
 interface MapTabProps {
   routeCoords?: [number, number][];
   onClearRoute?: () => void;
@@ -37,6 +45,8 @@ interface MapTabProps {
   onJumpToStopHandled?: () => void;
   stops?: Stop[];
   userLocation?: [number, number] | null;
+  activeNavigation?: ActiveNavigation | null;
+  onEndNavigation?: () => void;
 }
 
 export default function MapTab({
@@ -46,6 +56,8 @@ export default function MapTab({
   onJumpToStopHandled,
   stops: stopsProp = [],
   userLocation: userLocationProp = null,
+  activeNavigation,
+  onEndNavigation,
 }: MapTabProps) {
   const { t } = useT();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -236,8 +248,8 @@ export default function MapTab({
         </div>
       )}
 
-      {/* Right side FAB buttons */}
-      <div className="absolute right-3 bottom-24 z-30 flex flex-col gap-2">
+      {/* Right side FAB buttons — z-20 so they slide behind the stop card (z-30) when it opens */}
+      <div className="absolute right-3 bottom-24 z-20 flex flex-col gap-2">
         {/* My location */}
         <button
           onClick={() => { setCenterOnUser(true); setTimeout(() => setCenterOnUser(false), 100); }}
@@ -299,9 +311,9 @@ export default function MapTab({
         </button>
       </div>
 
-      {/* Nearest stops bottom sheet */}
+      {/* Nearest stops bottom sheet — z-30 sits above FABs (z-20) */}
       {showNearbyPanel && nearbyStops.length > 0 && (
-        <div className="absolute bottom-0 left-0 right-0 z-20 bg-white rounded-t-2xl shadow-2xl border-t border-gray-200 max-h-[55vh] flex flex-col">
+        <div className="absolute bottom-0 left-0 right-0 z-30 bg-white rounded-t-2xl shadow-2xl border-t border-gray-200 max-h-[55vh] flex flex-col">
           {/* Drag handle */}
           <div className="flex justify-center pt-2.5 pb-1">
             <div className="w-10 h-1 rounded-full bg-gray-300" />
@@ -345,11 +357,22 @@ export default function MapTab({
         </div>
       )}
 
-      {/* Stop arrivals bottom sheet */}
+      {/* Stop arrivals bottom sheet — z-30 sits above FABs (z-20) */}
       {selectedStop && (
-        <div className="absolute bottom-0 left-0 right-0 z-20">
+        <div className="absolute bottom-0 left-0 right-0 z-30">
           <StopArrivals stop={selectedStop} onClose={() => setSelectedStop(null)} />
         </div>
+      )}
+
+      {/* Navigation panel — z-50 from its own CSS, overlays everything */}
+      {activeNavigation && onEndNavigation && (
+        <NavigationPanel
+          route={activeNavigation.route}
+          destName={activeNavigation.destName}
+          destLat={activeNavigation.destLat}
+          destLng={activeNavigation.destLng}
+          onEnd={onEndNavigation}
+        />
       )}
     </div>
   );

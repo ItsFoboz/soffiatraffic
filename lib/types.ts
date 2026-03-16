@@ -79,4 +79,27 @@ export interface TransitRouteResult {
   walkFromStop: number; // meters
   duration: number;     // total minutes
   numStops: number;
+  // 1-transfer fields (optional):
+  isTransfer?: boolean;
+  line2?: string;
+  type2?: VehicleType;
+  boardStop2?: TransitStop;
+  alightStop2?: TransitStop;
+  stops2?: TransitStop[];
+  transferStop?: TransitStop;
+  transferWalk?: number; // meters at transfer point
+  numStops2?: number;
+}
+
+/** One step in a turn-by-turn navigation session */
+export interface NavStep {
+  type: 'walk' | 'transit' | 'transfer' | 'arrive';
+  instruction: string;
+  detail?: string;
+  distanceM?: number;   // walk distance
+  targetLat?: number;   // GPS waypoint to advance past
+  targetLng?: number;
+  line?: string;
+  vehicleType?: VehicleType;
+  numStops?: number;
 }

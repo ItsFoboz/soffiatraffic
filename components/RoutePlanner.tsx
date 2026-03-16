@@ -10,6 +10,7 @@ interface RoutePlannerProps {
   onFromChange?: (result: SearchResult | null) => void;
   onToChange?: (result: SearchResult | null) => void;
   userLocation?: [number, number] | null;
+  onStartNavigation?: (route: TransitRouteResult, dest: SearchResult) => void;
 }
 
 function useDebounce<T>(value: T, delay: number): T {
@@ -41,6 +42,7 @@ export default function RoutePlanner({
   onFromChange,
   onToChange,
   userLocation,
+  onStartNavigation,
 }: RoutePlannerProps) {
   const { t } = useT();
   const [fromText, setFromText] = useState('');
@@ -58,7 +60,7 @@ export default function RoutePlanner({
   const abortRef = useRef<AbortController | null>(null);
 
   const debouncedFrom = useDebounce(fromText, 400);
-  const debouncedTo = useDebounce(toText, 400);
+  const debouncedTo   = useDebounce(toText, 400);
 
   const geocode = useCallback(async (q: string): Promise<SearchResult[]> => {
     if (!q.trim() || q.length < 2) return [];
@@ -66,9 +68,7 @@ export default function RoutePlanner({
       const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
       const data = await res.json();
       return data.results ?? [];
-    } catch {
-      return [];
-    }
+    } catch { return []; }
   }, []);
 
   useEffect(() => {
@@ -107,12 +107,11 @@ export default function RoutePlanner({
 
     try {
       const url = `/api/routes?fromLat=${fromLat}&fromLng=${fromLng}&toLat=${toResult.lat}&toLng=${toResult.lng}`;
-      const res = await fetch(url, { signal: abortRef.current.signal });
+      const res  = await fetch(url, { signal: abortRef.current.signal });
       const data = await res.json();
 
       if (data.transitRoutes?.length > 0) {
         setTransitRoutes(data.transitRoutes);
-        // Auto-select the fastest option and show on map
         const best = data.transitRoutes[0] as TransitRouteResult;
         setSelectedRoute(best);
         if (best.geometry.length > 1) onRouteFound(best.geometry);
@@ -134,7 +133,7 @@ export default function RoutePlanner({
       setSelectedRoute(route);
       if (route.geometry.length > 1) onRouteFound(route.geometry);
     },
-    [onRouteFound]
+    [onRouteFound],
   );
 
   const setUseMyLocation = useCallback(() => {
@@ -146,14 +145,8 @@ export default function RoutePlanner({
     onFromChange?.(r);
   }, [userLocation, t, onFromChange]);
 
-  const handleFromClear = () => {
-    setFromText(''); setFromResult(null); setFromSuggestions([]);
-    onFromChange?.(null); clearResults();
-  };
-  const handleToClear = () => {
-    setToText(''); setToResult(null); setToSuggestions([]);
-    onToChange?.(null); clearResults();
-  };
+  const handleFromClear = () => { setFromText(''); setFromResult(null); setFromSuggestions([]); onFromChange?.(null); clearResults(); };
+  const handleToClear   = () => { setToText('');   setToResult(null);   setToSuggestions([]);   onToChange?.(null);   clearResults(); };
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-4 space-y-3">
@@ -173,9 +166,7 @@ export default function RoutePlanner({
           <svg className="absolute left-2.5 top-2.5 w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
           </svg>
-          {fromText && (
-            <button onClick={handleFromClear} className="absolute right-2 top-2 p-1 text-gray-400 hover:text-gray-600">✕</button>
-          )}
+          {fromText && <button onClick={handleFromClear} className="absolute right-2 top-2 p-1 text-gray-400 hover:text-gray-600">✕</button>}
         </div>
         {userLocation && !fromResult && (
           <button onClick={setUseMyLocation} className="mt-1 text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1">
@@ -184,12 +175,12 @@ export default function RoutePlanner({
         )}
         {activeField === 'from' && fromSuggestions.length > 0 && (
           <SuggestionList results={fromSuggestions} onSelect={(r) => {
-            setFromText(r.name as string); setFromResult(r); setFromSuggestions([]); onFromChange?.(r);
+            setFromText(r.name); setFromResult(r); setFromSuggestions([]); onFromChange?.(r);
           }} />
         )}
       </div>
 
-      {/* Swap button */}
+      {/* Swap */}
       <button
         onClick={() => {
           const tmpText = fromText; setFromText(toText); setToText(tmpText);
@@ -221,13 +212,11 @@ export default function RoutePlanner({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
             <circle cx="12" cy="12" r="2" fill="currentColor" />
           </svg>
-          {toText && (
-            <button onClick={handleToClear} className="absolute right-2 top-2 p-1 text-gray-400 hover:text-gray-600">✕</button>
-          )}
+          {toText && <button onClick={handleToClear} className="absolute right-2 top-2 p-1 text-gray-400 hover:text-gray-600">✕</button>}
         </div>
         {activeField === 'to' && toSuggestions.length > 0 && (
           <SuggestionList results={toSuggestions} onSelect={(r) => {
-            setToText(r.name as string); setToResult(r); setToSuggestions([]); onToChange?.(r);
+            setToText(r.name); setToResult(r); setToSuggestions([]); onToChange?.(r);
           }} />
         )}
       </div>
@@ -239,48 +228,37 @@ export default function RoutePlanner({
         className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 active:bg-blue-800 transition-colors flex items-center justify-center gap-2"
       >
         {searching ? (
-          <>
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            {t('search.searching')}
-          </>
+          <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{t('search.searching')}</>
         ) : (
-          <>
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            {t('search.search')}
-          </>
+          <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>{t('search.search')}</>
         )}
       </button>
 
-      {/* No route found */}
+      {/* No route */}
       {noRoute && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800 text-center">
-          No direct transit route found between these locations.
+          No transit route found between these locations.
         </div>
       )}
 
-      {/* Transit route results */}
+      {/* Results */}
       {transitRoutes.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
               {transitRoutes.length} route{transitRoutes.length !== 1 ? 's' : ''} found
             </p>
-            <button
-              onClick={clearResults}
-              className="text-xs text-red-500 hover:text-red-700 font-medium flex items-center gap-1"
-            >
+            <button onClick={clearResults} className="text-xs text-red-500 hover:text-red-700 font-medium flex items-center gap-1">
               ✕ Clear route
             </button>
           </div>
 
           {transitRoutes.map((route, i) => {
             const routeKey = `${route.type}:${route.line}:${i}`;
-            const isSelected = selectedRoute && selectedRoute.line === route.line && selectedRoute.type === route.type;
+            const isSelected = !!(selectedRoute && selectedRoute.line === route.line && selectedRoute.type === route.type);
             const isExpanded = expandedStops === routeKey;
-            const walkToMin = Math.round(route.walkToStop / 80);
-            const walkFromMin = Math.round(route.walkFromStop / 80);
+            const walkToMin   = Math.max(1, Math.round(route.walkToStop   / 80));
+            const walkFromMin = Math.max(1, Math.round(route.walkFromStop / 80));
 
             return (
               <div
@@ -290,62 +268,87 @@ export default function RoutePlanner({
                 }`}
                 onClick={() => selectRoute(route)}
               >
-                <div className="p-3">
-                  {/* Line badge + summary */}
-                  <div className="flex items-center gap-3">
-                    <div className={`flex-shrink-0 w-12 h-12 rounded-xl ${TYPE_COLORS[route.type]} flex flex-col items-center justify-center`}>
-                      <span className="text-white text-lg leading-none">{TYPE_ICONS[route.type]}</span>
-                      <span className="text-white text-xs font-bold leading-none mt-0.5">{route.line}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1 text-sm font-semibold text-gray-900">
-                        <span className="truncate">{route.boardStop.name}</span>
-                        <span className="text-gray-400 flex-shrink-0">→</span>
-                        <span className="truncate">{route.alightStop.name}</span>
-                      </div>
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="text-xs text-gray-500">{route.numStops} stops</span>
-                        <span className="text-xs font-medium text-blue-700">~{route.duration} min</span>
-                        {walkToMin > 0 && (
-                          <span className="text-xs text-gray-500">🚶 {walkToMin} min to stop</span>
-                        )}
-                      </div>
-                    </div>
+                <div className="p-3 space-y-2">
+                  {/* Line badges + transfer indicator */}
+                  <div className="flex items-center gap-2">
+                    <LineBadge type={route.type} line={route.line} />
+                    {route.isTransfer && route.line2 && route.type2 && (
+                      <>
+                        <span className="text-gray-400 text-sm font-bold">→</span>
+                        <LineBadge type={route.type2} line={route.line2} />
+                        <span className="ml-1 text-xs text-orange-600 font-semibold bg-orange-50 px-1.5 py-0.5 rounded-full">1 transfer</span>
+                      </>
+                    )}
+                    <span className="ml-auto text-sm font-bold text-blue-700">~{route.duration} min</span>
                   </div>
 
-                  {/* Walk info */}
-                  <div className="mt-2 pt-2 border-t border-gray-100 flex items-center gap-2 text-xs text-gray-500">
-                    <span>Board at <strong className="text-gray-700">{route.boardStop.name}</strong></span>
-                    <span>·</span>
-                    <span>Get off at <strong className="text-gray-700">{route.alightStop.name}</strong></span>
-                  </div>
-                  {walkFromMin > 0 && (
-                    <div className="text-xs text-gray-500 mt-1">
-                      🚶 {walkFromMin} min walk from final stop
+                  {/* Steps summary */}
+                  <div className="space-y-1 text-xs text-gray-600">
+                    <div className="flex items-center gap-1.5">
+                      <span>🚶</span>
+                      <span>{walkToMin} min walk → <strong className="text-gray-800">{route.boardStop.name}</strong></span>
                     </div>
+                    <div className="flex items-center gap-1.5">
+                      <span>{TYPE_ICONS[route.type]}</span>
+                      <span>{route.numStops} stops → <strong className="text-gray-800">{route.alightStop.name}</strong></span>
+                    </div>
+                    {route.isTransfer && route.line2 && route.type2 && route.boardStop2 && route.alightStop2 && (
+                      <>
+                        <div className="flex items-center gap-1.5 pl-3 border-l-2 border-orange-300">
+                          <span>🔄</span>
+                          <span>Transfer → board <strong className="text-gray-800">{route.type2} {route.line2}</strong></span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span>{TYPE_ICONS[route.type2]}</span>
+                          <span>{route.numStops2} stops → <strong className="text-gray-800">{route.alightStop2.name}</strong></span>
+                        </div>
+                      </>
+                    )}
+                    {walkFromMin > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <span>🚶</span>
+                        <span>{walkFromMin} min walk to destination</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Navigate button (only on selected route) */}
+                  {isSelected && onStartNavigation && toResult && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onStartNavigation(route, toResult); }}
+                      className="w-full mt-1 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-blue-700 active:bg-blue-800 transition-colors"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                      </svg>
+                      Start Navigation
+                    </button>
                   )}
                 </div>
 
-                {/* Expand/collapse stops */}
+                {/* Expand stops */}
                 <button
                   className="w-full px-3 py-2 bg-gray-50 text-xs text-blue-600 font-medium hover:bg-gray-100 transition-colors flex items-center justify-center gap-1"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setExpandedStops(isExpanded ? null : routeKey);
-                  }}
+                  onClick={(e) => { e.stopPropagation(); setExpandedStops(isExpanded ? null : routeKey); }}
                 >
-                  {isExpanded ? '▲ Hide stops' : `▼ Show all ${route.numStops} stops`}
+                  {isExpanded ? '▲ Hide stops' : `▼ Show stops`}
                 </button>
 
                 {isExpanded && (
                   <div className="px-3 pb-3 bg-gray-50 max-h-48 overflow-y-auto">
+                    {/* Leg 1 stops */}
                     {route.stops.map((stop, si) => (
                       <div key={stop.id || si} className="flex items-center gap-2 py-1.5 border-b border-gray-100 last:border-0">
-                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                          si === 0 ? 'bg-green-500' :
-                          si === route.stops.length - 1 ? 'bg-red-500' : 'bg-gray-400'
-                        }`} />
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${si === 0 ? 'bg-green-500' : si === route.stops.length - 1 ? (route.isTransfer ? 'bg-orange-400' : 'bg-red-500') : 'bg-gray-400'}`} />
                         <span className="text-xs text-gray-700">{stop.name}</span>
+                        {stop.code && <span className="text-xs text-gray-400 ml-auto">{stop.code}</span>}
+                      </div>
+                    ))}
+                    {/* Leg 2 stops */}
+                    {route.isTransfer && route.stops2?.map((stop, si) => (
+                      <div key={`leg2-${stop.id || si}`} className="flex items-center gap-2 py-1.5 border-b border-gray-100 last:border-0">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${si === 0 ? 'bg-orange-400' : si === (route.stops2!.length - 1) ? 'bg-red-500' : 'bg-gray-300'}`} />
+                        <span className="text-xs text-gray-500 italic">{stop.name}</span>
                         {stop.code && <span className="text-xs text-gray-400 ml-auto">{stop.code}</span>}
                       </div>
                     ))}
@@ -356,6 +359,15 @@ export default function RoutePlanner({
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function LineBadge({ type, line }: { type: VehicleType; line: string }) {
+  return (
+    <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${TYPE_COLORS[type]} flex flex-col items-center justify-center`}>
+      <span className="text-white text-base leading-none">{TYPE_ICONS[type]}</span>
+      <span className="text-white text-xs font-bold leading-none mt-0.5">{line}</span>
     </div>
   );
 }

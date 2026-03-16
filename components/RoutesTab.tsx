@@ -2,16 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import RoutePlanner from './RoutePlanner';
-import type { SearchResult } from '@/lib/types';
+import type { SearchResult, TransitRouteResult } from '@/lib/types';
 import { useT } from './TranslationContext';
 
 interface RoutesTabProps {
   onRouteFound: (coords: [number, number][]) => void;
   onClearRoute: () => void;
   onShowOnMap: () => void;
+  onStartNavigation?: (route: TransitRouteResult, dest: SearchResult) => void;
 }
 
-export default function RoutesTab({ onRouteFound, onClearRoute, onShowOnMap }: RoutesTabProps) {
+export default function RoutesTab({ onRouteFound, onClearRoute, onShowOnMap, onStartNavigation }: RoutesTabProps) {
   const { t } = useT();
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [hasRoute, setHasRoute] = useState(false);
@@ -48,6 +49,7 @@ export default function RoutesTab({ onRouteFound, onClearRoute, onShowOnMap }: R
           userLocation={userLocation}
           onFromChange={(_r: SearchResult | null) => { setHasRoute(false); }}
           onToChange={(_r: SearchResult | null) => { setHasRoute(false); }}
+          onStartNavigation={onStartNavigation}
         />
 
         {hasRoute && (

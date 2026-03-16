@@ -7,7 +7,7 @@ import BottomNav from '@/components/BottomNav';
 import RoutesTab from '@/components/RoutesTab';
 import StopsTab from '@/components/StopsTab';
 import FavoritesTab from '@/components/FavoritesTab';
-import type { Stop } from '@/lib/types';
+import type { Stop, TransitRouteResult, SearchResult } from '@/lib/types';
 
 // Lazy load the heavy map tab
 const MapTab = dynamic(() => import('@/components/MapTab'), { ssr: false });
@@ -20,6 +20,9 @@ export default function Home() {
   const [stops, setStops] = useState<Stop[]>([]);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [jumpToStop, setJumpToStop] = useState<Stop | null>(null);
+  const [activeNavigation, setActiveNavigation] = useState<{
+    route: TransitRouteResult; destName: string; destLat: number; destLng: number;
+  } | null>(null);
 
   // Fetch stops once
   useEffect(() => {
@@ -53,6 +56,12 @@ export default function Home() {
     setActiveTab('map');
   }, []);
 
+  const handleStartNavigation = useCallback((route: TransitRouteResult, dest: SearchResult) => {
+    setActiveNavigation({ route, destName: dest.name, destLat: dest.lat, destLng: dest.lng });
+    setRouteCoords(route.geometry);
+    setActiveTab('map');
+  }, []);
+
   return (
     <main className="fixed inset-0 flex flex-col bg-gray-50">
       <Header />
@@ -68,6 +77,8 @@ export default function Home() {
             onJumpToStopHandled={() => setJumpToStop(null)}
             stops={stops}
             userLocation={userLocation}
+            activeNavigation={activeNavigation}
+            onEndNavigation={() => { setActiveNavigation(null); handleClearRoute(); }}
           />
         </div>
 
@@ -78,6 +89,7 @@ export default function Home() {
               onRouteFound={handleRouteFound}
               onClearRoute={handleClearRoute}
               onShowOnMap={() => setActiveTab('map')}
+              onStartNavigation={handleStartNavigation}
             />
           </div>
         )}
