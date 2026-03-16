@@ -1,18 +1,18 @@
 'use client';
 
 import { useT } from './TranslationContext';
-import { useSession, signOut, signIn } from 'next-auth/react';
+import { useAuth } from './AuthContext';
+import { signOut, signInWithGoogle } from '@/lib/auth';
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import type { Locale } from '@/lib/i18n';
 
 export default function Header() {
   const { t, locale, changeLocale } = useT();
-  const { data: session, status } = useSession();
+  const { user, loading } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close menu when clicking outside
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -45,64 +45,59 @@ export default function Header() {
             <span>{locale === 'bg' ? 'BG' : 'EN'}</span>
           </button>
 
-          {/* Auth button */}
-          {status === 'loading' ? (
+          {/* Auth */}
+          {loading ? (
             <div className="w-8 h-8 rounded-full bg-blue-500 animate-pulse" />
-          ) : session?.user ? (
+          ) : user ? (
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen((v) => !v)}
-                className="flex items-center gap-1.5 focus:outline-none"
+                className="focus:outline-none"
                 aria-label={t('auth.myAccount')}
               >
-                {session.user.image ? (
+                {user.photoURL ? (
                   <Image
-                    src={session.user.image}
-                    alt={session.user.name ?? 'User'}
+                    src={user.photoURL}
+                    alt={user.displayName ?? 'User'}
                     width={32}
                     height={32}
                     className="rounded-full border-2 border-white/50"
                   />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-blue-500 border-2 border-white/50 flex items-center justify-center text-sm font-bold">
-                    {session.user.name?.[0]?.toUpperCase() ?? '?'}
+                    {user.displayName?.[0]?.toUpperCase() ?? '?'}
                   </div>
                 )}
               </button>
 
-              {/* Dropdown menu */}
               {menuOpen && (
                 <div className="absolute right-0 top-10 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50">
                   {/* User info */}
                   <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
                     <div className="flex items-center gap-3">
-                      {session.user.image ? (
+                      {user.photoURL ? (
                         <Image
-                          src={session.user.image}
-                          alt={session.user.name ?? 'User'}
+                          src={user.photoURL}
+                          alt={user.displayName ?? 'User'}
                           width={40}
                           height={40}
                           className="rounded-full flex-shrink-0"
                         />
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold flex-shrink-0">
-                          {session.user.name?.[0]?.toUpperCase() ?? '?'}
+                          {user.displayName?.[0]?.toUpperCase() ?? '?'}
                         </div>
                       )}
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 truncate">
-                          {session.user.name}
-                        </p>
-                        <p className="text-xs text-gray-500 truncate">
-                          {session.user.email}
-                        </p>
+                        <p className="text-sm font-semibold text-gray-900 truncate">{user.displayName}</p>
+                        <p className="text-xs text-gray-500 truncate">{user.email}</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Sign out */}
                   <button
-                    onClick={() => { setMenuOpen(false); signOut({ callbackUrl: '/login' }); }}
+                    onClick={() => { setMenuOpen(false); signOut(); }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -115,7 +110,7 @@ export default function Header() {
             </div>
           ) : (
             <button
-              onClick={() => signIn('google', { callbackUrl: '/' })}
+              onClick={() => signInWithGoogle()}
               className="flex items-center gap-1.5 bg-white text-blue-700 hover:bg-blue-50 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors"
             >
               <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">

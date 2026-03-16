@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { TranslationProvider } from "@/components/TranslationContext";
-import SessionProviderWrapper from "@/components/SessionProviderWrapper";
-import { auth } from "@/auth";
+import { AuthProvider } from "@/components/AuthContext";
+import AnalyticsInit from "@/components/AnalyticsInit";
 
 export const metadata: Metadata = {
   title: "Sofia Traffic | София Трафик",
@@ -24,13 +24,11 @@ export const viewport: Viewport = {
   themeColor: "#1d4ed8",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await auth();
-
   return (
     <html lang="bg">
       <head>
@@ -40,11 +38,12 @@ export default async function RootLayout({
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
       </head>
       <body className="antialiased">
-        <SessionProviderWrapper session={session}>
+        <AuthProvider>
           <TranslationProvider>
+            <AnalyticsInit />
             {children}
           </TranslationProvider>
-        </SessionProviderWrapper>
+        </AuthProvider>
       </body>
     </html>
   );
