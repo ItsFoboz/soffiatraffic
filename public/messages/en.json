@@ -70,6 +70,13 @@
     "apiError": "Error fetching data",
     "retry": "Retry"
   },
+  "auth": {
+    "signInWithGoogle": "Sign in with Google",
+    "signOut": "Sign out",
+    "myAccount": "My account",
+    "privacyNote": "By signing in, you agree to only your profile picture and email being used.",
+    "greeting": "Hello"
+  },
   "settings": {
     "language": "Language",
     "theme": "Theme",
