@@ -178,8 +178,8 @@ export default function MapTab({
         />
       </div>
 
-      {/* Top controls overlay */}
-      <div className="absolute top-0 left-0 right-0 z-10 p-3 pointer-events-none">
+      {/* Top controls overlay — z-30 keeps it above the stop panel (z-20) */}
+      <div className="absolute top-0 left-0 right-0 z-30 p-3 pointer-events-none">
         <div className="pointer-events-auto">
           <VehicleFilter active={filter} onChange={setFilter} counts={counts} />
         </div>
@@ -206,7 +206,7 @@ export default function MapTab({
 
       {/* Clear route banner */}
       {routeCoords && routeCoords.length > 1 && onClearRoute && (
-        <div className="absolute top-[72px] left-3 right-3 z-10 flex justify-center pointer-events-none">
+        <div className="absolute top-[72px] left-3 right-3 z-30 flex justify-center pointer-events-none">
           <button
             onClick={onClearRoute}
             className="pointer-events-auto flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-md border border-gray-200 text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
@@ -221,7 +221,7 @@ export default function MapTab({
 
       {/* Clear vehicle line route banner */}
       {vehicleRouteCoords && vehicleRouteCoords.length > 1 && (
-        <div className="absolute top-[72px] left-3 right-3 z-10 flex justify-center pointer-events-none">
+        <div className="absolute top-[72px] left-3 right-3 z-30 flex justify-center pointer-events-none">
           <button
             onClick={() => { setVehicleRouteCoords(undefined); setVehicleRouteLine(null); }}
             className="pointer-events-auto flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-full shadow-md text-sm font-medium hover:bg-orange-600 transition-colors"
@@ -235,7 +235,7 @@ export default function MapTab({
       )}
 
       {/* Right side FAB buttons */}
-      <div className="absolute right-3 bottom-24 z-10 flex flex-col gap-2">
+      <div className="absolute right-3 bottom-24 z-30 flex flex-col gap-2">
         {/* My location */}
         <button
           onClick={() => { setCenterOnUser(true); setTimeout(() => setCenterOnUser(false), 100); }}
