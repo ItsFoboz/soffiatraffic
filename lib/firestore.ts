@@ -11,13 +11,18 @@ import {
 import { db } from './firebase';
 import type { Stop } from './types';
 
+function requireDb() {
+  if (!db) throw new Error('Firebase is not configured');
+  return db;
+}
+
 // Path: users/{userId}/favorites/{stopId}
 function favoritesRef(userId: string) {
-  return collection(db, 'users', userId, 'favorites');
+  return collection(requireDb(), 'users', userId, 'favorites');
 }
 
 function favoriteDoc(userId: string, stopId: string) {
-  return doc(db, 'users', userId, 'favorites', stopId);
+  return doc(requireDb(), 'users', userId, 'favorites', stopId);
 }
 
 export async function addFavoriteToFirestore(userId: string, stop: Stop): Promise<void> {
@@ -83,11 +88,11 @@ export interface SavedRoute {
 }
 
 function routesRef(userId: string) {
-  return collection(db, 'users', userId, 'savedRoutes');
+  return collection(requireDb(), 'users', userId, 'savedRoutes');
 }
 
 function routeDoc(userId: string, routeId: string) {
-  return doc(db, 'users', userId, 'savedRoutes', routeId);
+  return doc(requireDb(), 'users', userId, 'savedRoutes', routeId);
 }
 
 export async function saveRouteToFirestore(userId: string, route: Omit<SavedRoute, 'savedAt'>): Promise<void> {
@@ -118,7 +123,7 @@ export async function upsertUserProfile(userId: string, data: {
   email?: string | null;
   image?: string | null;
 }): Promise<void> {
-  const ref = doc(db, 'users', userId);
+  const ref = doc(requireDb(), 'users', userId);
   const snap = await getDoc(ref);
   if (!snap.exists()) {
     await setDoc(ref, { ...data, createdAt: serverTimestamp() });

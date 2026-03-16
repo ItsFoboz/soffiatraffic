@@ -10,7 +10,7 @@ export async function getAnalytics(): Promise<Analytics | null> {
   try {
     const { getAnalytics: _getAnalytics, isSupported } = await import('firebase/analytics');
     const { app } = await import('./firebase');
-    if (await isSupported()) {
+    if (app && await isSupported()) {
       analytics = _getAnalytics(app);
     }
   } catch {
