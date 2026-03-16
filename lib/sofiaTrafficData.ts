@@ -47,7 +47,7 @@ export async function fetchSofiaLinesAndStops(): Promise<{
     return { lines: linesCache, stops: stopsCache };
   }
 
-  const res = await fetch('https://www.sofiatraffic.bg/bg/transport/schedules', {
+  const res = await fetch('https://www.sofiatraffic.bg/bg/public-transport', {
     headers: {
       'User-Agent': 'Mozilla/5.0 (compatible; SofiaTrafficApp/1.0)',
       'Accept': 'text/html',
@@ -70,7 +70,7 @@ export async function fetchSofiaLinesAndStops(): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const props = JSON.parse(pageJson).props as Record<string, any>;
 
-  // Build ext_id → LineInfo mapping
+  // Build ext_id → LineInfo mapping (lines is an array)
   const lines: Record<string, LineInfo> = {};
   for (const line of Array.isArray(props.lines) ? props.lines : []) {
     if (line.ext_id && line.name) {
@@ -91,7 +91,7 @@ export async function fetchSofiaLinesAndStops(): Promise<{
     lat: Array.isArray(s.position) ? Number(s.position[0]) : 0,
     lng: Array.isArray(s.position) ? Number(s.position[1]) : 0,
     type: TYPE_MAP[s.type] ?? 'bus',
-  })).filter((s: SofiaStop) => s.lat && s.lng);
+  })).filter((s: SofiaStop) => s.lat !== 0 && s.lng !== 0);
 
   linesCache = lines;
   stopsCache = stops;
