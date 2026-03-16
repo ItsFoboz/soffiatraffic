@@ -160,8 +160,10 @@ export default function MapTab({
 
   return (
     <div className="relative w-full h-full flex flex-col">
-      {/* Map takes full height */}
-      <div className="absolute inset-0">
+      {/* Map takes full height — isolate creates a stacking context so Leaflet's
+          internal compositing (mix-blend-mode on tiles, will-change on panes)
+          cannot escape and cover the React overlays above */}
+      <div className="absolute inset-0 isolate">
         <MapComponent
           vehicles={filteredVehicles}
           stops={stops}

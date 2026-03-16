@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import 'leaflet/dist/leaflet.css';
 import type { Vehicle, Stop } from '@/lib/types';
 import { useT } from './TranslationContext';
 
