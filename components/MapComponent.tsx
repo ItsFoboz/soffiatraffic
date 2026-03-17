@@ -71,18 +71,18 @@ function makeVehicleSvg(color: string, bearing: number, line: string): string {
 function makeStopSvg(color: string, isSelected: boolean, isSmall: boolean): string {
   if (isSmall) {
     const c = isSelected ? '#F59E0B' : color;
-    // Tiny rounded square — clearly different from the circular vehicle blobs
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 9 9">
-      <rect x="0.75" y="0.75" width="7.5" height="7.5" rx="2" fill="${c}" stroke="white" stroke-width="1.5"/>
+    // 14 px coloured square centred inside a 36×36 transparent hit-zone → fat-finger friendly
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+      <rect x="11" y="11" width="14" height="14" rx="3.5" fill="${c}" stroke="white" stroke-width="2"/>
     </svg>`;
   }
   const c = isSelected ? '#F59E0B' : color;
-  // Bus-stop sign: coloured board with white lines + pole
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="26" viewBox="0 0 22 26">
-    <rect x="1" y="1" width="20" height="14" rx="3.5" fill="${c}" stroke="white" stroke-width="1.8"/>
-    <rect x="4.5" y="5"   width="13" height="2" rx="1" fill="white" opacity="0.9"/>
-    <rect x="4.5" y="8.5" width="9"  height="2" rx="1" fill="white" opacity="0.7"/>
-    <rect x="10.5" y="15" width="1.8" height="10" rx="0.9" fill="${c}" opacity="0.55"/>
+  // Bus-stop sign centred inside a 40×46 transparent hit-zone
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="46" viewBox="0 0 40 46">
+    <rect x="6" y="2" width="28" height="18" rx="4.5" fill="${c}" stroke="white" stroke-width="2"/>
+    <rect x="11" y="7"    width="18" height="2.5" rx="1.25" fill="white" opacity="0.9"/>
+    <rect x="11" y="11.5" width="13" height="2.5" rx="1.25" fill="white" opacity="0.7"/>
+    <rect x="19" y="20" width="2" height="14" rx="1" fill="${c}" opacity="0.5"/>
   </svg>`;
 }
 
@@ -156,9 +156,9 @@ export default function MapComponent({
     if (!showStopsRef.current) return;
 
     const zoom = mapRef.current.getZoom();
-    if (zoom < 13) return;
+    if (zoom < 14) return;
 
-    const isSmall     = zoom < 15;
+    const isSmall      = zoom < 15;
     const activeFilter = stopFilterRef.current;
 
     for (const stop of stopsRef.current) {
@@ -167,10 +167,11 @@ export default function MapComponent({
       const stopColor  = stop.type ? STOP_COLORS[stop.type] : STOP_COLORS.default;
 
       const svg  = makeStopSvg(stopColor, isSelected, isSmall);
-      const w    = isSmall ? 9  : isSelected ? 26 : 22;
-      const h    = isSmall ? 9  : isSelected ? 30 : 26;
+      // Hit-zone sizes match the SVG viewBox; anchor: centred for square, bottom-centre for sign
+      const w    = isSmall ? 36 : 40;
+      const h    = isSmall ? 36 : 46;
       const ax   = w / 2;
-      const ay   = isSmall ? h / 2 : h; // pin anchors at its base (bottom-centre)
+      const ay   = isSmall ? h / 2 : h;
       const icon = L.divIcon({ html: svg, className: '', iconSize: [w, h], iconAnchor: [ax, ay] });
 
       const marker = L.marker([stop.lat, stop.lng], { icon, zIndexOffset: isSelected ? 500 : 50 });
@@ -298,7 +299,7 @@ export default function MapComponent({
     let prevZoom = DEFAULT_ZOOM;
     map.on('zoomend', () => {
       const z = map.getZoom();
-      const stopThresholdCrossed    = (prevZoom < 13) !== (z < 13) || (prevZoom < 15) !== (z < 15);
+      const stopThresholdCrossed    = (prevZoom < 14) !== (z < 14) || (prevZoom < 15) !== (z < 15);
       const vehicleThresholdCrossed = (prevZoom < CLUSTER_ZOOM_THRESHOLD) !== (z < CLUSTER_ZOOM_THRESHOLD);
       prevZoom = z;
       if (stopThresholdCrossed)    renderStops(L);
