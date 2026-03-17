@@ -68,16 +68,13 @@ function makeVehicleSvg(color: string, bearing: number, line: string): string {
   </svg>`;
 }
 
-function makeStopSvg(color: string, isSelected: boolean, isSmall: boolean): string {
-  if (isSmall) {
-    const c = isSelected ? '#F59E0B' : color;
-    // 14 px coloured square centred inside a 36×36 transparent hit-zone → fat-finger friendly
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
-      <rect x="11" y="11" width="14" height="14" rx="3.5" fill="${c}" stroke="white" stroke-width="2"/>
-    </svg>`;
-  }
+// Sign-marker icon cache: keyed by `${color}|${isSelected}`.
+// Populated lazily after Leaflet loads; avoids rebuilding SVG + DivIcon on every render.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const signIconCache = new Map<string, any>();
+
+function makeStopSignSvg(color: string, isSelected: boolean): string {
   const c = isSelected ? '#F59E0B' : color;
-  // Bus-stop sign centred inside a 40×46 transparent hit-zone
   return `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="46" viewBox="0 0 40 46">
     <rect x="6" y="2" width="28" height="18" rx="4.5" fill="${c}" stroke="white" stroke-width="2"/>
     <rect x="11" y="7"    width="18" height="2.5" rx="1.25" fill="white" opacity="0.9"/>
@@ -126,6 +123,8 @@ export default function MapComponent({
   const walkLayerRef       = useRef<import('leaflet').LayerGroup | null>(null);
   const vehicleRouteLayerRef = useRef<import('leaflet').Polyline | null>(null);
   const userMarkerRef      = useRef<import('leaflet').Marker | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const canvasRendererRef  = useRef<any>(null);
   const initializedRef     = useRef(false);
 
   // Stable refs so render callbacks don't need to re-run on prop changes
@@ -166,19 +165,36 @@ export default function MapComponent({
       const isSelected = selectedStopRef.current?.id === stop.id;
       const stopColor  = stop.type ? STOP_COLORS[stop.type] : STOP_COLORS.default;
 
-      const svg  = makeStopSvg(stopColor, isSelected, isSmall);
-      // Hit-zone sizes match the SVG viewBox; anchor: centred for square, bottom-centre for sign
-      const w    = isSmall ? 36 : 40;
-      const h    = isSmall ? 36 : 46;
-      const ax   = w / 2;
-      const ay   = isSmall ? h / 2 : h;
-      const icon = L.divIcon({ html: svg, className: '', iconSize: [w, h], iconAnchor: [ax, ay] });
-
-      const marker = L.marker([stop.lat, stop.lng], { icon, zIndexOffset: isSelected ? 500 : 50 });
-      if (onStopClickRef.current) {
-        marker.on('click', () => onStopClickRef.current!(stop));
+      if (isSmall) {
+        // ── Canvas CircleMarker — all stops share one <canvas> element, zero per-marker DOM ──
+        const cm = L.circleMarker([stop.lat, stop.lng], {
+          renderer:    canvasRendererRef.current,
+          radius:      isSelected ? 10 : 8,
+          color:       'white',
+          weight:      2,
+          fillColor:   isSelected ? '#F59E0B' : stopColor,
+          fillOpacity: 1,
+        });
+        if (onStopClickRef.current) cm.on('click', () => onStopClickRef.current!(stop));
+        cm.addTo(stopLayerRef.current!);
+      } else {
+        // ── Sign marker with cached DivIcon — SVG never rebuilt unless colour/selection changes ──
+        const cacheKey = `${stopColor}|${isSelected}`;
+        if (!signIconCache.has(cacheKey)) {
+          signIconCache.set(cacheKey, L.divIcon({
+            html:       makeStopSignSvg(stopColor, isSelected),
+            className:  '',
+            iconSize:   [40, 46],
+            iconAnchor: [20, 46],
+          }));
+        }
+        const marker = L.marker([stop.lat, stop.lng], {
+          icon:        signIconCache.get(cacheKey),
+          zIndexOffset: isSelected ? 500 : 50,
+        });
+        if (onStopClickRef.current) marker.on('click', () => onStopClickRef.current!(stop));
+        marker.addTo(stopLayerRef.current!);
       }
-      marker.addTo(stopLayerRef.current!);
     }
   }, []);
 
@@ -288,22 +304,27 @@ export default function MapComponent({
       maxZoom: 19,
     }).addTo(map);
 
-    vehicleLayerRef.current = L.layerGroup().addTo(map);
-    stopLayerRef.current    = L.layerGroup().addTo(map);
-    mapRef.current          = map;
+    canvasRendererRef.current = L.canvas({ padding: 0.5 });
+    vehicleLayerRef.current   = L.layerGroup().addTo(map);
+    stopLayerRef.current      = L.layerGroup().addTo(map);
+    mapRef.current            = map;
 
     // Expose zoom controls to parent (used by the custom controls card)
     onMapReady?.({ zoomIn: () => map.zoomIn(), zoomOut: () => map.zoomOut() });
 
-    // Re-render layers only when zoom crosses meaningful thresholds
+    // Re-render layers only when zoom crosses meaningful thresholds.
+    // Deferred with requestAnimationFrame so the zoom animation fully completes
+    // before JS blocks the main thread recreating markers.
     let prevZoom = DEFAULT_ZOOM;
     map.on('zoomend', () => {
       const z = map.getZoom();
       const stopThresholdCrossed    = (prevZoom < 14) !== (z < 14) || (prevZoom < 15) !== (z < 15);
       const vehicleThresholdCrossed = (prevZoom < CLUSTER_ZOOM_THRESHOLD) !== (z < CLUSTER_ZOOM_THRESHOLD);
       prevZoom = z;
-      if (stopThresholdCrossed)    renderStops(L);
-      if (vehicleThresholdCrossed) renderVehicles(L);
+      requestAnimationFrame(() => {
+        if (stopThresholdCrossed)    renderStops(L);
+        if (vehicleThresholdCrossed) renderVehicles(L);
+      });
     });
 
     const ro = new ResizeObserver(() => { map.invalidateSize(); });
