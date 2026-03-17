@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { VehicleType } from '@/lib/types';
 import { fetchTripUpdatesFeed, fetchSofiaLinesAndStops } from '@/lib/sofiaTrafficData';
+import { snapToRoads } from '@/lib/routing';
 
 function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000;
@@ -138,7 +139,12 @@ export async function GET(request: NextRequest) {
     const direct = [...directSeen.values()].sort((a, b) => a.duration - b.duration);
 
     if (direct.length > 0) {
-      return NextResponse.json({ transitRoutes: direct.slice(0, 6), code: 'Ok' });
+      const top = direct.slice(0, 6);
+      // Snap each route geometry to actual roads in parallel
+      await Promise.all(top.map(async (r) => {
+        r.geometry = await snapToRoads(r.stops);
+      }));
+      return NextResponse.json({ transitRoutes: top, code: 'Ok' });
     }
 
     // ── No direct route — try 1-transfer routes ────────────────────────
@@ -204,9 +210,20 @@ export async function GET(request: NextRequest) {
 
     const transfers = [...transferSeen.values()].sort((a, b) => a.duration - b.duration);
 
+    const topTransfers = transfers.slice(0, 3);
+    // Snap each leg to roads separately, then join — avoids routing through
+    // the transfer connection as a single trip
+    await Promise.all(topTransfers.map(async (r) => {
+      const [geo1, geo2] = await Promise.all([
+        snapToRoads(r.stops),
+        snapToRoads(r.stops2 ?? []),
+      ]);
+      r.geometry = [...geo1, ...geo2];
+    }));
+
     return NextResponse.json({
-      transitRoutes: transfers.slice(0, 3),
-      code: transfers.length > 0 ? 'Ok' : 'NoRoute',
+      transitRoutes: topTransfers,
+      code: topTransfers.length > 0 ? 'Ok' : 'NoRoute',
     });
 
   } catch (err) {

@@ -6,6 +6,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchTripUpdatesFeed, fetchSofiaLinesAndStops } from '@/lib/sofiaTrafficData';
+import { snapToRoads } from '@/lib/routing';
 
 export async function GET(request: NextRequest) {
   const routeId = request.nextUrl.searchParams.get('routeId');
@@ -45,9 +46,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ stops: [], geometry: [], line: null });
     }
 
+    const geometry = await snapToRoads(bestStops);
+
     return NextResponse.json({
       stops: bestStops,
-      geometry: bestStops.map((s) => [s.lat, s.lng]),
+      geometry,
       line: lineInfo ? { name: lineInfo.name, type: lineInfo.type } : null,
     });
   } catch (err) {
