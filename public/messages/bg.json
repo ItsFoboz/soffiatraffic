@@ -50,7 +50,19 @@
     "arriving": "Пристига",
     "loadingArrivals": "Зарежда пристиганията...",
     "code": "Код на спирка",
-    "nearbyStops": "Близки спирки"
+    "nearbyStops": "Близки спирки",
+    "realtime": "В реално време",
+    "live": "Живо"
+  },
+  "stops": {
+    "bandNearby": "Наблизо (до 200м)",
+    "band5min": "5 мин. пеша (200–500м)",
+    "bandFar": "По-далеч"
+  },
+  "routes": {
+    "sofiaTransport": "ГРАДСКИ ТРАНСПОРТ СОФИЯ",
+    "recentRoutes": "СКОРОШНИ МАРШРУТИ",
+    "noRecentRoutes": "Няма скорошни маршрути"
   },
   "route": {
     "departure": "Заминаване",
@@ -72,21 +84,15 @@
   },
   "auth": {
     "signIn": "Влезте в акаунта си",
-    "signInWithGoogle": "Влезте с Google",
+    "signInWithGoogle": "Влез с Google",
     "signOut": "Изход",
     "profile": "Профил",
     "hello": "Здравейте",
+    "greeting": "Здравей",
     "privacyNote": "Влизайки, вие се съгласявате само вашето Google профилно изображение и имейл да бъдат съхранявани за персонализация.",
     "myAccount": "Моят акаунт",
     "favorites": "Любими спирки",
     "notSignedIn": "Не сте влезли"
-  },
-  "auth": {
-    "signInWithGoogle": "Влез с Google",
-    "signOut": "Изход",
-    "myAccount": "Моят акаунт",
-    "privacyNote": "Влизайки, вие се съгласявате само вашето потребителско профилно изображение и имейл да бъдат използвани.",
-    "greeting": "Здравей"
   },
   "settings": {
     "language": "Език",

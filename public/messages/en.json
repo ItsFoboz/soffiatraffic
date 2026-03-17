@@ -50,7 +50,19 @@
     "arriving": "Arriving",
     "loadingArrivals": "Loading arrivals...",
     "code": "Stop code",
-    "nearbyStops": "Nearby stops"
+    "nearbyStops": "Nearby stops",
+    "realtime": "Real-time",
+    "live": "Live"
+  },
+  "stops": {
+    "bandNearby": "Nearby (under 200m)",
+    "band5min": "5-min walk (200–500m)",
+    "bandFar": "Further away"
+  },
+  "routes": {
+    "sofiaTransport": "SOFIA PUBLIC TRANSPORT",
+    "recentRoutes": "RECENT ROUTES",
+    "noRecentRoutes": "No recent routes"
   },
   "route": {
     "departure": "Departure",

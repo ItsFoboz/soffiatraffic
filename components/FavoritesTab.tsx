@@ -97,17 +97,19 @@ export default function FavoritesTab({ onStopSelect }: FavoritesTabProps) {
       <div className="flex-1 overflow-y-auto px-4 pb-4">
         {favorites.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center">
+            {/* NDK-inspired silhouette — subtle Sofia identity */}
+            <svg viewBox="0 0 200 55" aria-hidden="true"
+              style={{ width: '110px', height: '30px', marginBottom: '16px', color: '#003DA5', opacity: 0.07 }}
+              fill="currentColor">
+              <rect x="75" y="0" width="50" height="13" rx="1"/>
+              <rect x="35" y="13" width="130" height="12" rx="1"/>
+              <rect x="5"  y="25" width="190" height="30" rx="2"/>
+            </svg>
             <svg
-              width="48"
-              height="48"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="mb-3"
-              style={{ color: 'var(--color-text-muted)' }}
+              width="48" height="48" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" strokeWidth="1.5"
+              strokeLinecap="round" strokeLinejoin="round"
+              className="mb-3" style={{ color: 'var(--color-text-muted)' }}
             >
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
             </svg>

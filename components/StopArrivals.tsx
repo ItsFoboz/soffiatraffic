@@ -143,7 +143,7 @@ export default function StopArrivals({ stop, onClose }: StopArrivalsProps) {
                 style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-live)', background: '#f0fdf4', fontWeight: 'var(--font-weight-semibold)' }}
               >
                 <span className="w-1.5 h-1.5 rounded-full inline-block animate-live" style={{ background: 'var(--color-live)' }} />
-                Live
+                {t('stop.live')}
               </span>
             )}
           </div>
@@ -157,7 +157,7 @@ export default function StopArrivals({ stop, onClose }: StopArrivalsProps) {
               style={{ color: 'var(--color-text-muted)' }}
               aria-label="Refresh"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className={`w-4 h-4 ${arrivalsLoading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
             </button>
@@ -275,7 +275,7 @@ export default function StopArrivals({ stop, onClose }: StopArrivalsProps) {
                         {a.isRealtime && (
                           <p className="flex items-center gap-1 mt-0.5" style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-live)' }}>
                             <span className="w-1.5 h-1.5 rounded-full inline-block animate-live" style={{ background: 'var(--color-live)' }} />
-                            Real-time
+                            {t('stop.realtime')}
                           </p>
                         )}
                       </div>
@@ -289,6 +289,8 @@ export default function StopArrivals({ stop, onClose }: StopArrivalsProps) {
                         ) : (
                           <>
                             <p
+                              key={a.minutes}
+                              className="animate-number-fade"
                               style={{
                                 fontSize: '22px',
                                 fontWeight: 'var(--font-weight-bold)',

@@ -19,13 +19,13 @@ const TYPE_ICONS: Record<FilterOption, string> = {
   metro:   '🚇',
 };
 
-/** Active background — always #1A56DB regardless of transport type */
+/** Active background — Sofia municipal blue #003DA5 for all tabs */
 const ACTIVE_BG: Record<FilterOption, string> = {
-  all:     '#1A56DB',
-  bus:     '#1A56DB',
-  tram:    '#1A56DB',
-  trolley: '#1A56DB',
-  metro:   '#1A56DB',
+  all:     '#003DA5',
+  bus:     '#003DA5',
+  tram:    '#003DA5',
+  trolley: '#003DA5',
+  metro:   '#003DA5',
 };
 
 export default function VehicleFilter({ active, onChange, counts }: VehicleFilterProps) {

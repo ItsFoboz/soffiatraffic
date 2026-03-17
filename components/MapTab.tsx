@@ -13,7 +13,7 @@ const MapComponent = dynamic(() => import('./MapComponent'), {
   loading: () => (
     <div className="w-full h-full flex items-center justify-center bg-gray-100">
       <div className="text-center">
-        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+        <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin mx-auto mb-2" style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
         <p className="text-sm text-gray-500">Loading map…</p>
       </div>
     </div>
@@ -21,6 +21,7 @@ const MapComponent = dynamic(() => import('./MapComponent'), {
 });
 
 type FilterOption = 'all' | VehicleType;
+type MapStyle = 'light' | 'dark';
 
 function distanceM(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371000;
@@ -40,7 +41,6 @@ interface ActiveNavigation {
 interface MapTabProps {
   routeCoords?: [number, number][];
   onClearRoute?: () => void;
-  /** Stop selected from another tab — opens its arrivals sheet */
   jumpToStop?: Stop | null;
   onJumpToStopHandled?: () => void;
   stops?: Stop[];
@@ -60,22 +60,33 @@ export default function MapTab({
   onEndNavigation,
 }: MapTabProps) {
   const { t } = useT();
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [stops, setStops] = useState<Stop[]>(stopsProp);
-  const [filter, setFilter] = useState<FilterOption>('all');
-  const [showVehicles, setShowVehicles] = useState(true);
-  const [showStops, setShowStops] = useState(true);
-  const [selectedStop, setSelectedStop] = useState<Stop | null>(null);
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(userLocationProp);
-  const [centerOnUser, setCenterOnUser] = useState(false);
-  const [isLive, setIsLive] = useState(true);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [vehicles, setVehicles]             = useState<Vehicle[]>([]);
+  const [stops, setStops]                   = useState<Stop[]>(stopsProp);
+  const [filter, setFilter]                 = useState<FilterOption>('all');
+  const [showVehicles, setShowVehicles]     = useState(true);
+  const [showStops, setShowStops]           = useState(true);
+  const [selectedStop, setSelectedStop]     = useState<Stop | null>(null);
+  const [userLocation, setUserLocation]     = useState<[number, number] | null>(userLocationProp);
+  const [centerOnUser, setCenterOnUser]     = useState(false);
+  const [isLive, setIsLive]                 = useState(true);
+  const [lastUpdate, setLastUpdate]         = useState<Date | null>(null);
   const [showNearbyPanel, setShowNearbyPanel] = useState(false);
   const [vehicleRouteCoords, setVehicleRouteCoords] = useState<[number, number][] | undefined>();
   const [vehicleRouteLine, setVehicleRouteLine] = useState<{ name: string; type: VehicleType } | null>(null);
+  const [mapStyle, setMapStyle]             = useState<MapStyle>('light');
+
+  // Zoom controls exposed from MapComponent via onMapReady
+  const zoomInRef  = useRef<(() => void) | null>(null);
+  const zoomOutRef = useRef<(() => void) | null>(null);
+  const handleMapReady = useCallback(
+    (controls: { zoomIn(): void; zoomOut(): void }) => {
+      zoomInRef.current  = controls.zoomIn;
+      zoomOutRef.current = controls.zoomOut;
+    }, []
+  );
+
   const fetchingRef = useRef(false);
 
-  // Sync props → state
   useEffect(() => { if (stopsProp.length) setStops(stopsProp); }, [stopsProp]);
   useEffect(() => { if (userLocationProp) setUserLocation(userLocationProp); }, [userLocationProp]);
 
@@ -83,41 +94,29 @@ export default function MapTab({
     if (fetchingRef.current) return;
     fetchingRef.current = true;
     try {
-      const res = await fetch('/api/vehicles');
+      const res  = await fetch('/api/vehicles');
       const data = await res.json();
-      if (Array.isArray(data.vehicles)) {
-        setVehicles(data.vehicles);
-        setLastUpdate(new Date());
-      }
-    } catch {
-      // silently fail on background refresh
-    } finally {
-      fetchingRef.current = false;
-    }
+      if (Array.isArray(data.vehicles)) { setVehicles(data.vehicles); setLastUpdate(new Date()); }
+    } catch { /* silently fail on background refresh */ }
+    finally { fetchingRef.current = false; }
   }, []);
 
   const fetchStops = useCallback(async () => {
-    if (stopsProp.length) return; // already loaded by parent
+    if (stopsProp.length) return;
     try {
-      const res = await fetch('/api/stops');
+      const res  = await fetch('/api/stops');
       const data = await res.json();
       if (Array.isArray(data.stops)) setStops(data.stops);
     } catch { /* ignore */ }
   }, [stopsProp.length]);
 
-  useEffect(() => {
-    fetchVehicles();
-    fetchStops();
-  }, [fetchVehicles, fetchStops]);
-
-  // Auto-refresh vehicles every 15 seconds
+  useEffect(() => { fetchVehicles(); fetchStops(); }, [fetchVehicles, fetchStops]);
   useEffect(() => {
     if (!isLive) return;
     const id = setInterval(fetchVehicles, 15000);
     return () => clearInterval(id);
   }, [isLive, fetchVehicles]);
 
-  // Get user location if not passed from parent
   useEffect(() => {
     if (userLocation || !navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
@@ -127,42 +126,33 @@ export default function MapTab({
     );
   }, [userLocation]);
 
-  // Handle external stop jump (from StopsTab / FavoritesTab)
   useEffect(() => {
-    if (jumpToStop) {
-      setSelectedStop(jumpToStop);
-      setShowNearbyPanel(false);
-      onJumpToStopHandled?.();
-    }
+    if (jumpToStop) { setSelectedStop(jumpToStop); setShowNearbyPanel(false); onJumpToStopHandled?.(); }
   }, [jumpToStop, onJumpToStopHandled]);
 
   const handleStopClick = useCallback((stop: Stop) => {
-    setSelectedStop(stop);
-    setShowNearbyPanel(false);
+    setSelectedStop(stop); setShowNearbyPanel(false);
   }, []);
 
   const handleVehicleClick = useCallback(async (vehicle: Vehicle) => {
     if (!vehicle.routeId) return;
     try {
-      const res = await fetch(`/api/line-route?routeId=${encodeURIComponent(vehicle.routeId)}`);
+      const res  = await fetch(`/api/line-route?routeId=${encodeURIComponent(vehicle.routeId)}`);
       const data = await res.json();
       if (data.geometry && data.geometry.length > 1) {
         setVehicleRouteCoords(data.geometry);
         setVehicleRouteLine(data.line ?? null);
-        setSelectedStop(null);
-        setShowNearbyPanel(false);
+        setSelectedStop(null); setShowNearbyPanel(false);
       }
     } catch { /* ignore */ }
   }, []);
 
   const filteredVehicles = filter === 'all' ? vehicles : vehicles.filter((v) => v.type === filter);
-
   const counts = vehicles.reduce(
     (acc, v) => ({ ...acc, [v.type]: (acc[v.type] ?? 0) + 1 }),
     {} as Record<VehicleType, number>
   );
 
-  // Nearest stops sorted by distance to user
   const nearbyStops = userLocation
     ? [...stops]
         .map((s) => ({ stop: s, dist: distanceM(userLocation[0], userLocation[1], s.lat, s.lng) }))
@@ -172,9 +162,7 @@ export default function MapTab({
 
   return (
     <div className="relative w-full h-full flex flex-col">
-      {/* Map takes full height — isolate creates a stacking context so Leaflet's
-          internal compositing (mix-blend-mode on tiles, will-change on panes)
-          cannot escape and cover the React overlays above */}
+      {/* Map fills full area — isolate prevents Leaflet from leaking above React overlays */}
       <div className="absolute inset-0 isolate">
         <MapComponent
           vehicles={filteredVehicles}
@@ -190,10 +178,12 @@ export default function MapTab({
           onVehicleClick={handleVehicleClick}
           centerOnUser={centerOnUser}
           followUser={!!activeNavigation}
+          mapStyle={mapStyle}
+          onMapReady={handleMapReady}
         />
       </div>
 
-      {/* Top controls overlay — z-30 keeps it above the stop panel (z-20) */}
+      {/* Top controls overlay */}
       <div className="absolute top-0 left-0 right-0 z-30 p-3 pointer-events-none">
         <div className="pointer-events-auto">
           <VehicleFilter active={filter} onChange={setFilter} counts={counts} />
@@ -210,33 +200,24 @@ export default function MapTab({
             padding: '4px 10px 4px 8px',
           }}
         >
-          {/* Scale-pulsing dot */}
           <span
             className={isLive ? 'animate-live' : ''}
             style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
+              width: '8px', height: '8px', borderRadius: '50%',
               background: isLive ? 'var(--color-live)' : 'var(--color-text-muted)',
               flexShrink: 0,
             }}
           />
-          {/* Toggle label */}
           <button
             onClick={() => setIsLive(!isLive)}
             style={{
-              fontSize: 'var(--font-size-sm)',
-              fontWeight: 'var(--font-weight-semibold)',
-              color: 'var(--color-text-primary)',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 0,
+              fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-semibold)',
+              color: 'var(--color-text-primary)', background: 'none', border: 'none',
+              cursor: 'pointer', padding: 0,
             }}
           >
             {isLive ? 'Live' : 'Paused'}
           </button>
-          {/* Timestamp */}
           {lastUpdate && (
             <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
               {lastUpdate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
@@ -275,73 +256,132 @@ export default function MapTab({
         </div>
       )}
 
-      {/* Right side FAB buttons — z-20 so they slide behind the stop card (z-30) when it opens */}
-      <div className="absolute right-3 bottom-24 z-20 flex flex-col gap-2">
-        {/* My location */}
-        <button
-          onClick={() => { setCenterOnUser(true); setTimeout(() => setCenterOnUser(false), 100); }}
-          className="w-11 h-11 rounded-full bg-white shadow-lg flex items-center justify-center hover:bg-gray-50 active:scale-95 transition-all border border-gray-100"
-          title={t('map.centerLocation')}
-        >
-          <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <circle cx="12" cy="12" r="3" fill="currentColor" />
-            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" strokeLinecap="round" />
-          </svg>
-        </button>
+      {/* ── Controls card — single grouped card, right side ─────────────── */}
+      <div className="absolute right-3 bottom-24 z-20" style={{ borderRadius: '12px', overflow: 'hidden', boxShadow: 'var(--shadow-md)' }}>
+        <div className="flex flex-col bg-white" style={{ width: '44px' }}>
 
-        {/* Nearest stop button — visible when user has location */}
-        {userLocation && stops.length > 0 && (
+          {/* Zoom in */}
           <button
-            onClick={() => { setShowNearbyPanel((v) => !v); setSelectedStop(null); }}
-            className={`w-11 h-11 rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-all border ${
-              showNearbyPanel
-                ? 'bg-amber-500 text-white border-amber-400'
-                : 'bg-white text-amber-600 border-gray-100 hover:bg-amber-50'
-            }`}
-            title="Nearest stops"
+            onClick={() => zoomInRef.current?.()}
+            className="h-11 flex items-center justify-center hover:bg-gray-50 active:scale-95"
+            title="Zoom in"
+            style={{ color: 'var(--color-text-primary)' }}
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
           </button>
-        )}
 
-        {/* Toggle vehicles */}
-        <button
-          onClick={() => setShowVehicles(!showVehicles)}
-          className={`w-11 h-11 rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-all border ${
-            showVehicles
-              ? 'bg-blue-600 text-white border-blue-500'
-              : 'bg-white text-gray-500 border-gray-100 hover:bg-gray-50'
-          }`}
-          title={showVehicles ? t('map.hideVehicles') : t('map.showVehicles')}
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 11V7a4 4 0 118 0v4m-4 4v2m-6 2h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
-          </svg>
-        </button>
+          <div style={{ height: '1px', background: '#E5E7EB' }} />
 
-        {/* Toggle stops */}
-        <button
-          onClick={() => setShowStops(!showStops)}
-          className={`w-11 h-11 rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-all border ${
-            showStops
-              ? 'bg-slate-600 text-white border-slate-500'
-              : 'bg-white text-gray-500 border-gray-100 hover:bg-gray-50'
-          }`}
-          title={t('map.stops')}
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z" />
-          </svg>
-        </button>
+          {/* Zoom out */}
+          <button
+            onClick={() => zoomOutRef.current?.()}
+            className="h-11 flex items-center justify-center hover:bg-gray-50 active:scale-95"
+            title="Zoom out"
+            style={{ color: 'var(--color-text-primary)' }}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
+            </svg>
+          </button>
+
+          <div style={{ height: '1px', background: '#E5E7EB' }} />
+
+          {/* My location */}
+          <button
+            onClick={() => { setCenterOnUser(true); setTimeout(() => setCenterOnUser(false), 100); }}
+            className="h-11 flex items-center justify-center hover:bg-gray-50 active:scale-95"
+            title={t('map.centerLocation')}
+            style={{ color: 'var(--color-primary)' }}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <circle cx="12" cy="12" r="3" fill="currentColor" />
+              <path d="M12 2v3M12 19v3M2 12h3M19 12h3" strokeLinecap="round" />
+            </svg>
+          </button>
+
+          {/* Nearest stops — only when location is known */}
+          {userLocation && stops.length > 0 && (
+            <>
+              <div style={{ height: '1px', background: '#E5E7EB' }} />
+              <button
+                onClick={() => { setShowNearbyPanel((v) => !v); setSelectedStop(null); }}
+                className="h-11 flex items-center justify-center hover:bg-amber-50 active:scale-95"
+                title="Nearest stops"
+                style={{ color: showNearbyPanel ? '#D97706' : '#F59E0B' }}
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+            </>
+          )}
+
+          <div style={{ height: '1px', background: '#E5E7EB' }} />
+
+          {/* Toggle vehicles */}
+          <button
+            onClick={() => setShowVehicles(!showVehicles)}
+            className="h-11 flex items-center justify-center active:scale-95"
+            title={showVehicles ? t('map.hideVehicles') : t('map.showVehicles')}
+            style={{
+              background: showVehicles ? 'var(--color-primary)' : 'white',
+              color:      showVehicles ? 'white' : 'var(--color-text-secondary)',
+            }}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 11V7a4 4 0 118 0v4m-4 4v2m-6 2h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+            </svg>
+          </button>
+
+          <div style={{ height: '1px', background: '#E5E7EB' }} />
+
+          {/* Toggle stops */}
+          <button
+            onClick={() => setShowStops(!showStops)}
+            className="h-11 flex items-center justify-center active:scale-95"
+            title={t('map.stops')}
+            style={{
+              background: showStops ? '#475569' : 'white',
+              color:      showStops ? 'white' : 'var(--color-text-secondary)',
+            }}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z" />
+            </svg>
+          </button>
+
+          <div style={{ height: '1px', background: '#E5E7EB' }} />
+
+          {/* Map style toggle: light ☀ / dark 🌙 */}
+          <button
+            onClick={() => setMapStyle((s) => (s === 'light' ? 'dark' : 'light'))}
+            className="h-11 flex items-center justify-center hover:bg-gray-50 active:scale-95"
+            title={mapStyle === 'light' ? 'Switch to dark map' : 'Switch to light map'}
+            style={{ color: 'var(--color-text-secondary)' }}
+          >
+            {mapStyle === 'light' ? (
+              /* Moon icon — switching to dark */
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              </svg>
+            ) : (
+              /* Sun icon — switching to light */
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <circle cx="12" cy="12" r="5" />
+                <path strokeLinecap="round" d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+              </svg>
+            )}
+          </button>
+
+        </div>
       </div>
 
-      {/* Nearest stops bottom sheet — z-30 sits above FABs (z-20) */}
+      {/* Nearest stops bottom sheet */}
       {showNearbyPanel && nearbyStops.length > 0 && (
-        <div className="absolute bottom-0 left-0 right-0 z-30 bg-white rounded-t-2xl shadow-2xl border-t border-gray-200 max-h-[55vh] flex flex-col">
-          {/* Drag handle */}
+        <div className="animate-slide-up absolute bottom-0 left-0 right-0 z-30 bg-white rounded-t-2xl shadow-2xl border-t border-gray-200 max-h-[55vh] flex flex-col">
           <div className="flex justify-center pt-2.5 pb-1">
             <div className="w-10 h-1 rounded-full bg-gray-300" />
           </div>
@@ -387,14 +427,14 @@ export default function MapTab({
         </div>
       )}
 
-      {/* Stop arrivals bottom sheet — z-30 sits above FABs (z-20) */}
+      {/* Stop arrivals bottom sheet */}
       {selectedStop && (
-        <div className="absolute bottom-0 left-0 right-0 z-30">
+        <div className="animate-slide-up absolute bottom-0 left-0 right-0 z-30">
           <StopArrivals stop={selectedStop} onClose={() => setSelectedStop(null)} />
         </div>
       )}
 
-      {/* Navigation panel — z-50 from its own CSS, overlays everything */}
+      {/* Navigation panel */}
       {activeNavigation && onEndNavigation && (
         <NavigationPanel
           route={activeNavigation.route}

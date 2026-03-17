@@ -226,7 +226,7 @@ export default function RoutePlanner({
         onClick={handleSearch}
         disabled={searching || (!fromResult && !userLocation) || !toResult}
         className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-        style={{ background: '#1A56DB' }}
+        style={{ background: '#003DA5' }}
       >
         {searching ? (
           <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{t('search.searching')}</>

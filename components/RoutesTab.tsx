@@ -23,6 +23,7 @@ export default function RoutesTab({ onRouteFound, onClearRoute, onShowOnMap, onS
   const { t } = useT();
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [hasRoute, setHasRoute] = useState(false);
+  const [selectedType, setSelectedType] = useState<string | null>(null);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -95,43 +96,43 @@ export default function RoutesTab({ onRouteFound, onClearRoute, onShowOnMap, onS
             letterSpacing: '0.06em',
           }}
         >
-          Sofia Public Transport
+          {t('routes.sofiaTransport')}
         </p>
       </div>
       <div className="px-4 grid grid-cols-2 gap-2 mb-6">
-        {TRANSPORT_TYPES.map((item) => (
-          <div
-            key={item.key}
-            className="flex items-center gap-3 p-4"
-            style={{
-              background: 'var(--color-surface)',
-              borderRadius: 'var(--radius-md)',
-              boxShadow: 'var(--shadow-sm)',
-            }}
-          >
-            {/* Colored icon circle */}
-            <div
-              className="flex items-center justify-center flex-shrink-0 text-xl"
+        {TRANSPORT_TYPES.map((item) => {
+          const isActive = selectedType === item.key;
+          return (
+            <button
+              key={item.key}
+              onClick={() => setSelectedType(isActive ? null : item.key)}
+              className="flex items-center gap-3 p-4 w-full text-left"
               style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                background: item.color + '1a',
+                background: isActive ? item.color + '18' : 'var(--color-surface)',
+                borderRadius: 'var(--radius-md)',
+                boxShadow: 'var(--shadow-sm)',
+                border: isActive ? `1.5px solid ${item.color}50` : '1.5px solid transparent',
+                transition: 'background 120ms ease, border-color 120ms ease',
               }}
             >
-              {item.emoji}
-            </div>
-            <span
-              style={{
-                fontSize: 'var(--font-size-base)',
-                fontWeight: 'var(--font-weight-medium)',
-                color: 'var(--color-text-primary)',
-              }}
-            >
-              {t(item.labelKey)}
-            </span>
-          </div>
-        ))}
+              <div
+                className="flex items-center justify-center flex-shrink-0 text-xl"
+                style={{ width: '32px', height: '32px', borderRadius: '50%', background: item.color + '1a' }}
+              >
+                {item.emoji}
+              </div>
+              <span
+                style={{
+                  fontSize: 'var(--font-size-base)',
+                  fontWeight: 'var(--font-weight-medium)',
+                  color: isActive ? item.color : 'var(--color-text-primary)',
+                }}
+              >
+                {t(item.labelKey)}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Recent routes — empty state */}
@@ -145,17 +146,25 @@ export default function RoutesTab({ onRouteFound, onClearRoute, onShowOnMap, onS
             letterSpacing: '0.06em',
           }}
         >
-          Recent routes
+          {t('routes.recentRoutes')}
         </p>
       </div>
       <div
         className="mx-4 mb-4 flex flex-col items-center justify-center py-8 rounded-xl"
         style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-sm)' }}
       >
+        {/* NDK-inspired silhouette — decorative Sofia landmark */}
+        <svg viewBox="0 0 200 55" aria-hidden="true"
+          style={{ width: '120px', height: '33px', marginBottom: '12px', color: '#003DA5', opacity: 0.07 }}
+          fill="currentColor">
+          <rect x="75" y="0" width="50" height="13" rx="1"/>
+          <rect x="35" y="13" width="130" height="12" rx="1"/>
+          <rect x="5"  y="25" width="190" height="30" rx="2"/>
+        </svg>
         <svg className="w-8 h-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} style={{ color: 'var(--color-text-muted)' }}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>No recent routes</p>
+        <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>{t('routes.noRecentRoutes')}</p>
       </div>
 
       {/* Attribution */}
