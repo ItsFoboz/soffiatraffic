@@ -7,6 +7,7 @@ import { useT } from './TranslationContext';
 import VehicleFilter from './VehicleFilter';
 import StopArrivals from './StopArrivals';
 import NavigationPanel from './NavigationPanel';
+import { useFavorites } from './FavoritesTab';
 
 const MapComponent = dynamic(() => import('./MapComponent'), {
   ssr: false,
@@ -76,6 +77,7 @@ export default function MapTab({
   const [vehicleRouteCoords, setVehicleRouteCoords] = useState<[number, number][] | undefined>();
   const [vehicleRouteLine, setVehicleRouteLine] = useState<{ name: string; type: VehicleType } | null>(null);
   const [mapStyle, setMapStyle]             = useState<MapStyle>('light');
+  const { isFavorite, addFavorite, removeFavorite } = useFavorites();
 
   // Zoom controls exposed from MapComponent via onMapReady
   const zoomInRef  = useRef<(() => void) | null>(null);
@@ -433,7 +435,16 @@ export default function MapTab({
       {/* Stop arrivals bottom sheet */}
       {selectedStop && (
         <div className="animate-slide-up absolute bottom-0 left-0 right-0 z-30">
-          <StopArrivals stop={selectedStop} onClose={() => setSelectedStop(null)} />
+          <StopArrivals
+            stop={selectedStop}
+            onClose={() => setSelectedStop(null)}
+            isFavorite={isFavorite(selectedStop.id)}
+            onToggleFavorite={() =>
+              isFavorite(selectedStop.id)
+                ? removeFavorite(selectedStop.id)
+                : addFavorite(selectedStop)
+            }
+          />
         </div>
       )}
 

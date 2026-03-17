@@ -17,9 +17,14 @@ const TYPE_EMOJI: Record<VehicleType, string> = {
 };
 
 interface LineRouteStop { id: string; code: string; name: string; lat: number; lng: number; }
-interface StopArrivalsProps { stop: Stop; onClose: () => void; }
+interface StopArrivalsProps {
+  stop: Stop;
+  onClose: () => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
+}
 
-export default function StopArrivals({ stop, onClose }: StopArrivalsProps) {
+export default function StopArrivals({ stop, onClose, isFavorite, onToggleFavorite }: StopArrivalsProps) {
   const { t } = useT();
   const [tab, setTab] = useState<'arrivals' | 'lines'>('arrivals');
 
@@ -150,6 +155,25 @@ export default function StopArrivals({ stop, onClose }: StopArrivalsProps) {
         </div>
 
         <div className="flex items-center gap-1 flex-shrink-0">
+          {onToggleFavorite && (
+            <button
+              onClick={onToggleFavorite}
+              className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+              aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+              title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              <svg
+                className="w-5 h-5"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                fill={isFavorite ? '#F59E0B' : 'none'}
+                style={{ color: isFavorite ? '#F59E0B' : 'var(--color-text-muted)', transition: 'fill 150ms ease, color 150ms ease' }}
+              >
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+            </button>
+          )}
           {tab === 'arrivals' && (
             <button
               onClick={fetchArrivals}
