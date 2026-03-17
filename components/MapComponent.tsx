@@ -68,6 +68,24 @@ function makeVehicleSvg(color: string, bearing: number, line: string): string {
   </svg>`;
 }
 
+function makeStopSvg(color: string, isSelected: boolean, isSmall: boolean): string {
+  if (isSmall) {
+    const c = isSelected ? '#F59E0B' : color;
+    // Tiny rounded square — clearly different from the circular vehicle blobs
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 9 9">
+      <rect x="0.75" y="0.75" width="7.5" height="7.5" rx="2" fill="${c}" stroke="white" stroke-width="1.5"/>
+    </svg>`;
+  }
+  const c = isSelected ? '#F59E0B' : color;
+  // Bus-stop sign: coloured board with white lines + pole
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="26" viewBox="0 0 22 26">
+    <rect x="1" y="1" width="20" height="14" rx="3.5" fill="${c}" stroke="white" stroke-width="1.8"/>
+    <rect x="4.5" y="5"   width="13" height="2" rx="1" fill="white" opacity="0.9"/>
+    <rect x="4.5" y="8.5" width="9"  height="2" rx="1" fill="white" opacity="0.7"/>
+    <rect x="10.5" y="15" width="1.8" height="10" rx="0.9" fill="${c}" opacity="0.55"/>
+  </svg>`;
+}
+
 function makeClusterSvg(count: number, color: string): string {
   const size = count >= 20 ? 48 : count >= 10 ? 44 : 38;
   const fontSize = count >= 100 ? 11 : count >= 10 ? 13 : 15;
@@ -148,13 +166,14 @@ export default function MapComponent({
       const isSelected = selectedStopRef.current?.id === stop.id;
       const stopColor  = stop.type ? STOP_COLORS[stop.type] : STOP_COLORS.default;
 
-      const marker = L.circleMarker([stop.lat, stop.lng], {
-        radius:      isSelected ? 8 : isSmall ? 3 : 4,
-        fillColor:   isSelected ? '#F59E0B' : stopColor,
-        color:       'white',
-        weight:      isSelected ? 2 : 1.5,
-        fillOpacity: 1,
-      });
+      const svg  = makeStopSvg(stopColor, isSelected, isSmall);
+      const w    = isSmall ? 9  : isSelected ? 26 : 22;
+      const h    = isSmall ? 9  : isSelected ? 30 : 26;
+      const ax   = w / 2;
+      const ay   = isSmall ? h / 2 : h; // pin anchors at its base (bottom-centre)
+      const icon = L.divIcon({ html: svg, className: '', iconSize: [w, h], iconAnchor: [ax, ay] });
+
+      const marker = L.marker([stop.lat, stop.lng], { icon, zIndexOffset: isSelected ? 500 : 50 });
       if (onStopClickRef.current) {
         marker.on('click', () => onStopClickRef.current!(stop));
       }
