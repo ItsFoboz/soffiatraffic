@@ -40,6 +40,9 @@ export default function StopArrivals({ stop, onClose, isFavorite, onToggleFavori
   const [selectedLine, setSelectedLine] = useState<StopLine | null>(null);
   const [lineStops, setLineStops] = useState<LineRouteStop[]>([]);
   const [lineDetailLoading, setLineDetailLoading] = useState(false);
+  const [showAllRouteStops, setShowAllRouteStops] = useState(false);
+
+  const ROUTE_PAGE = 30;
 
   const fetchArrivals = async () => {
     setArrivalsLoading(true); setArrivalsError(false);
@@ -64,7 +67,7 @@ export default function StopArrivals({ stop, onClose, isFavorite, onToggleFavori
   };
 
   const fetchLineDetail = async (line: StopLine) => {
-    setSelectedLine(line); setLineDetailLoading(true); setLineStops([]);
+    setSelectedLine(line); setLineDetailLoading(true); setLineStops([]); setShowAllRouteStops(false);
     try {
       const res = await fetch(`/api/line-route?routeId=${encodeURIComponent(line.routeId)}`);
       const data = await res.json();
@@ -382,48 +385,73 @@ export default function StopArrivals({ stop, onClose, isFavorite, onToggleFavori
                   </div>
                 ) : lineStops.length === 0 ? (
                   <p className="text-center py-6" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>Route stops not available right now.</p>
-                ) : (
-                  <div className="relative">
-                    <div className="absolute left-[19px] top-4 bottom-4 w-0.5" style={{ background: TYPE_COLOR[selectedLine.type] + '40' }} />
-                    {lineStops.map((s, idx) => {
-                      const isCurrent = s.code === stop.code || s.id === stop.id;
-                      const isFirst   = idx === 0;
-                      const isLast    = idx === lineStops.length - 1;
-                      return (
-                        <div key={s.id + idx} className="flex items-center gap-3 py-1.5 relative">
-                          <div
-                            className="z-10 flex-shrink-0 rounded-full border-2"
-                            style={{
-                              width:  isCurrent ? '14px' : isFirst || isLast ? '12px' : '10px',
-                              height: isCurrent ? '14px' : isFirst || isLast ? '12px' : '10px',
-                              marginLeft: isCurrent ? '9.5px' : isFirst || isLast ? '10px' : '11px',
-                              background: isCurrent ? TYPE_COLOR[selectedLine.type] : 'white',
-                              borderColor: TYPE_COLOR[selectedLine.type],
-                            }}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p
-                              className="truncate"
+                ) : (() => {
+                  const currentIdx = lineStops.findIndex((s) => s.code === stop.code || s.id === stop.id);
+                  // Always include the current stop's page; expand start if needed
+                  const minVisible = showAllRouteStops
+                    ? lineStops.length
+                    : Math.max(ROUTE_PAGE, currentIdx >= 0 ? currentIdx + 1 : 0);
+                  const visible    = lineStops.slice(0, minVisible);
+                  const remaining  = lineStops.length - visible.length;
+
+                  return (
+                    <div className="relative">
+                      <div className="absolute left-[19px] top-4 bottom-4 w-0.5" style={{ background: TYPE_COLOR[selectedLine.type] + '40' }} />
+                      {visible.map((s, idx) => {
+                        const isCurrent = s.code === stop.code || s.id === stop.id;
+                        const isFirst   = idx === 0;
+                        const isLast    = idx === lineStops.length - 1;
+                        return (
+                          <div key={s.id + idx} className="flex items-center gap-3 py-1.5 relative">
+                            <div
+                              className="z-10 flex-shrink-0 rounded-full border-2"
                               style={{
-                                fontSize: 'var(--font-size-sm)',
-                                fontWeight: isCurrent ? 'var(--font-weight-bold)' : 'var(--font-weight-normal)',
-                                color: 'var(--color-text-primary)',
+                                width:  isCurrent ? '14px' : isFirst || isLast ? '12px' : '10px',
+                                height: isCurrent ? '14px' : isFirst || isLast ? '12px' : '10px',
+                                marginLeft: isCurrent ? '9.5px' : isFirst || isLast ? '10px' : '11px',
+                                background: isCurrent ? TYPE_COLOR[selectedLine.type] : 'white',
+                                borderColor: TYPE_COLOR[selectedLine.type],
                               }}
-                            >
-                              {s.name}
-                              {isCurrent && (
-                                <span className="ml-2 text-[11px] font-semibold px-1.5 py-0.5 rounded-full text-white" style={{ background: TYPE_COLOR[selectedLine.type] }}>
-                                  Here
-                                </span>
-                              )}
-                            </p>
-                            {s.code && <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>{s.code}</p>}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p
+                                className="truncate"
+                                style={{
+                                  fontSize: 'var(--font-size-sm)',
+                                  fontWeight: isCurrent ? 'var(--font-weight-bold)' : 'var(--font-weight-normal)',
+                                  color: 'var(--color-text-primary)',
+                                }}
+                              >
+                                {s.name}
+                                {isCurrent && (
+                                  <span className="ml-2 text-[11px] font-semibold px-1.5 py-0.5 rounded-full text-white" style={{ background: TYPE_COLOR[selectedLine.type] }}>
+                                    Here
+                                  </span>
+                                )}
+                              </p>
+                              {s.code && <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>{s.code}</p>}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                        );
+                      })}
+                      {remaining > 0 && (
+                        <button
+                          onClick={() => setShowAllRouteStops(true)}
+                          className="w-full py-3 mt-1 rounded-xl"
+                          style={{
+                            fontSize: 'var(--font-size-sm)',
+                            color: 'var(--color-primary)',
+                            fontWeight: 'var(--font-weight-semibold)',
+                            background: 'var(--color-bg)',
+                            border: '1px solid var(--color-border)',
+                          }}
+                        >
+                          Show {remaining} more stop{remaining !== 1 ? 's' : ''}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             ) : (
               <div className="px-5">

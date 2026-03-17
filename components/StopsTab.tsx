@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition, useDeferredValue } from 'react';
 import type { Stop } from '@/lib/types';
 import { useT } from './TranslationContext';
 import { stopName } from '@/lib/format';
@@ -106,20 +106,26 @@ function StopRow({
 export default function StopsTab({ stops, onStopSelect, userLocation }: StopsTabProps) {
   const { t } = useT();
   const [query, setQuery] = useState('');
+  const [, startTransition] = useTransition();
+
+  // Defer the heavy sort/filter so typing and tab-switching stay responsive
+  const deferredQuery    = useDeferredValue(query);
+  const deferredLocation = useDeferredValue(userLocation);
+  const isStale          = query !== deferredQuery;
 
   const filtered = useMemo(() => {
-    const q = query.toLowerCase().trim();
+    const q = deferredQuery.toLowerCase().trim();
     let list = q ? stops.filter((s) => s.name.toLowerCase().includes(q) || s.code.includes(q)) : stops;
 
-    if (userLocation && !q) {
+    if (deferredLocation && !q) {
       list = [...list].sort((a, b) => {
-        const da = distance(userLocation[0], userLocation[1], a.lat, a.lng);
-        const db = distance(userLocation[0], userLocation[1], b.lat, b.lng);
+        const da = distance(deferredLocation[0], deferredLocation[1], a.lat, a.lng);
+        const db = distance(deferredLocation[0], deferredLocation[1], b.lat, b.lng);
         return da - db;
       });
     }
     return list.slice(0, 50);
-  }, [stops, query, userLocation]);
+  }, [stops, deferredQuery, deferredLocation]);
 
   // Distance bands — only when we have location and no active search query
   const grouped = useMemo(() => {
@@ -162,7 +168,7 @@ export default function StopsTab({ stops, onStopSelect, userLocation }: StopsTab
           <input
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => { const v = e.target.value; startTransition(() => setQuery(v)); }}
             placeholder={t('search.stopSearch')}
             className="w-full"
             style={{
@@ -231,7 +237,7 @@ export default function StopsTab({ stops, onStopSelect, userLocation }: StopsTab
       </div>
 
       {/* Stop list */}
-      <div className="flex-1 overflow-y-auto" style={{ background: 'var(--color-surface)' }}>
+      <div className="flex-1 overflow-y-auto" style={{ background: 'var(--color-surface)', opacity: isStale ? 0.6 : 1, transition: 'opacity 150ms' }}>
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <svg className="w-10 h-10 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}
