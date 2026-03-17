@@ -13,9 +13,14 @@ export async function snapToRoads(
 
   // OSRM expects coordinates as "lng,lat" pairs (GeoJSON order), semicolon-separated
   const coords = stops.map((s) => `${s.lng.toFixed(6)},${s.lat.toFixed(6)}`).join(';');
-  const url =
-    `https://router.project-osrm.org/route/v1/${profile}/${coords}` +
-    `?overview=full&geometries=geojson`;
+
+  // router.project-osrm.org only hosts the driving profile.
+  // routing.openstreetmap.de hosts separate routed-foot / routed-bike instances.
+  const baseUrl =
+    profile === 'foot'
+      ? `https://routing.openstreetmap.de/routed-foot/route/v1/foot/${coords}`
+      : `https://router.project-osrm.org/route/v1/driving/${coords}`;
+  const url = `${baseUrl}?overview=full&geometries=geojson`;
 
   try {
     const controller = new AbortController();
