@@ -41,8 +41,10 @@ interface MapComponentProps {
 }
 
 function makeVehicleSvg(color: string, bearing: number, line: string): string {
+  // Strip leading letter prefix (e.g. "A63" → "63") for display only
+  const label = /^[A-Za-z](\d+)$/.test(line) ? line.slice(1) : line;
   // Adaptive font size based on line label length
-  const len = line.length;
+  const len = label.length;
   const fontSize = len >= 4 ? 7 : len === 3 ? 9 : len === 2 ? 11 : 13;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
@@ -53,7 +55,7 @@ function makeVehicleSvg(color: string, bearing: number, line: string): string {
     <text x="20" y="25" text-anchor="middle" dominant-baseline="auto"
       fill="white" font-size="${fontSize}" font-weight="700"
       font-family="system-ui,-apple-system,sans-serif"
-      style="paint-order:stroke" stroke="${color}" stroke-width="1">${line}</text>
+      style="paint-order:stroke" stroke="${color}" stroke-width="1">${label}</text>
   </svg>`;
 }
 

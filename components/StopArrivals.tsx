@@ -241,7 +241,7 @@ export default function StopArrivals({ stop, onClose }: StopArrivalsProps) {
                       style={{
                         padding: '16px 20px',
                         borderBottom: '1px solid var(--color-border)',
-                        background: urgent ? '#fef2f2' : soon ? '#fff7ed' : 'transparent',
+                        background: 'transparent',
                         borderLeft: urgent ? '3px solid var(--color-error)' : soon ? '3px solid var(--color-warning)' : '3px solid transparent',
                       }}
                     >
@@ -266,8 +266,8 @@ export default function StopArrivals({ stop, onClose }: StopArrivalsProps) {
                           className="truncate"
                           style={{
                             fontSize: 'var(--font-size-base)',
-                            fontWeight: 'var(--font-weight-semibold)',
-                            color: 'var(--color-text-primary)',
+                            fontWeight: 600,
+                            color: '#111827',
                           }}
                         >
                           {a.direction || `${a.type.charAt(0).toUpperCase() + a.type.slice(1)} ${a.line}`}

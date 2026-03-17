@@ -193,15 +193,15 @@ export default function StopsTab({ stops, onStopSelect, userLocation }: StopsTab
                   )}
                 </div>
 
-                {/* Distance badge — prominent if nearby, muted beyond 500m */}
+                {/* Distance badge — amber ≤300m, grey >300m */}
                 {dist !== null && (
                   <span
                     className="flex-shrink-0 rounded-full px-2 py-0.5"
                     style={{
                       fontSize: 'var(--font-size-xs)',
                       fontWeight: 'var(--font-weight-medium)',
-                      background: isNearby ? 'rgba(245,158,11,0.12)' : 'var(--color-bg)',
-                      color: isNearby ? '#b45309' : 'var(--color-text-muted)',
+                      background: isClose ? 'rgba(245,158,11,0.12)' : '#9CA3AF',
+                      color: isClose ? '#b45309' : 'white',
                     }}
                   >
                     {dist < 1000 ? `${dist}m` : `${(dist / 1000).toFixed(1)}km`}

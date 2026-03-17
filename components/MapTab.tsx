@@ -375,7 +375,10 @@ export default function MapTab({
                   <p className="text-sm font-semibold text-gray-900 truncate">{stop.name}</p>
                   {stop.code && <p className="text-xs text-gray-500">{t('stop.code')}: {stop.code}</p>}
                 </div>
-                <span className="text-xs font-medium text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full flex-shrink-0">
+                <span
+                  className="text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0"
+                  style={dist <= 300 ? { background: 'rgba(245,158,11,0.12)', color: '#b45309' } : { background: '#9CA3AF', color: 'white' }}
+                >
                   {dist < 1000 ? `${Math.round(dist)}m` : `${(dist / 1000).toFixed(1)}km`}
                 </span>
               </button>

@@ -225,7 +225,8 @@ export default function RoutePlanner({
       <button
         onClick={handleSearch}
         disabled={searching || (!fromResult && !userLocation) || !toResult}
-        className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 active:bg-blue-800 transition-colors flex items-center justify-center gap-2"
+        className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+        style={{ background: '#1A56DB' }}
       >
         {searching ? (
           <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{t('search.searching')}</>
@@ -245,7 +246,7 @@ export default function RoutePlanner({
       {transitRoutes.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            <p className="text-xs font-semibold text-gray-500 uppercase" style={{ letterSpacing: '0.06em' }}>
               {transitRoutes.length} route{transitRoutes.length !== 1 ? 's' : ''} found
             </p>
             <button onClick={clearResults} className="text-xs text-red-500 hover:text-red-700 font-medium flex items-center gap-1">
