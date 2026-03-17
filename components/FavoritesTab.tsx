@@ -80,10 +80,6 @@ export default function FavoritesTab({ onStopSelect }: FavoritesTabProps) {
   const { favorites, removeFavorite } = useFavorites();
   const [selectedStop, setSelectedStop] = useState<Stop | null>(null);
 
-  const emptyMessage = user
-    ? t('nav.favorites')
-    : 'Sign in to sync favorites across devices';
-
   return (
     <div className="flex flex-col h-full">
       <div className="p-4">
@@ -91,22 +87,30 @@ export default function FavoritesTab({ onStopSelect }: FavoritesTabProps) {
           <span>⭐</span>
           <span>{t('nav.favorites')}</span>
         </h2>
-        <p className="text-xs mt-1 flex items-center gap-1">
-          {user ? (
-            <span className="text-green-600 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
-              Synced with Firebase · {favorites.length} stop{favorites.length !== 1 ? 's' : ''}
-            </span>
-          ) : (
-            <span className="text-gray-400">{emptyMessage}</span>
-          )}
-        </p>
+        {user && favorites.length > 0 && (
+          <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
+            {favorites.length} запазени спирки
+          </p>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 pb-4">
         {favorites.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center">
-            <span className="text-5xl mb-3">⭐</span>
+            <svg
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="mb-3"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
             <p className="text-gray-500 text-sm">No favorite stops yet</p>
             <p className="text-gray-400 text-xs mt-1">Find stops in the Stops tab and add them here</p>
             {!user && (

@@ -38,9 +38,9 @@ export default function VehicleFilter({ active, onChange, counts }: VehicleFilte
     <div
       className="flex overflow-x-auto no-scrollbar"
       style={{
-        background: 'var(--color-surface)',
+        background: 'white',
         borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-sm)',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
         padding: '4px',
         gap: '2px',
       }}
@@ -73,7 +73,7 @@ export default function VehicleFilter({ active, onChange, counts }: VehicleFilte
                     background: 'transparent',
                     color: 'var(--color-text-secondary)',
                     borderRadius: 'var(--radius-md)',
-                    padding: '6px 12px',
+                    padding: '6px 10px',
                     fontSize: 'var(--font-size-sm)',
                     fontWeight: 'var(--font-weight-medium)',
                     flexShrink: 0,

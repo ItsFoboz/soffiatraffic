@@ -40,7 +40,7 @@ export default function Header() {
             <h1 className="leading-tight font-bold" style={{ color: 'var(--color-text-primary)', fontSize: 'var(--font-size-base)' }}>
               {t('app.title')}
             </h1>
-            <p className="leading-tight" style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)' }}>
+            <p className="leading-tight" style={{ color: 'var(--color-text-secondary)', fontSize: '12px' }}>
               {t('app.subtitle')}
             </p>
           </div>

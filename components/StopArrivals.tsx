@@ -190,7 +190,7 @@ export default function StopArrivals({ stop, onClose }: StopArrivalsProps) {
               marginBottom: '-1px',
             }}
           >
-            {id === 'arrivals' ? (t('stop.arrivals') || 'Arrivals') : 'Lines'}
+            {id === 'arrivals' ? (t('stop.arrivals') || 'Arrivals') : 'Линии'}
           </button>
         ))}
       </div>
@@ -266,8 +266,8 @@ export default function StopArrivals({ stop, onClose }: StopArrivalsProps) {
                           className="truncate"
                           style={{
                             fontSize: 'var(--font-size-base)',
-                            fontWeight: 'var(--font-weight-medium)',
-                            color: a.direction ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
+                            fontWeight: 'var(--font-weight-semibold)',
+                            color: 'var(--color-text-primary)',
                           }}
                         >
                           {a.direction || `${a.type.charAt(0).toUpperCase() + a.type.slice(1)} ${a.line}`}
