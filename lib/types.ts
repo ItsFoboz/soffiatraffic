@@ -79,6 +79,8 @@ export interface TransitRouteResult {
   walkFromStop: number; // meters
   duration: number;     // total minutes
   numStops: number;
+  /** Road-snapped walk polylines, one entry per walk segment (to-board, transfer, from-alight) */
+  walkGeometry?: [number, number][][];
   // 1-transfer fields (optional):
   isTransfer?: boolean;
   line2?: string;

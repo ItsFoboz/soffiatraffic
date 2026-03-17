@@ -6,6 +6,7 @@ import { useT } from './TranslationContext';
 
 interface RoutePlannerProps {
   onRouteFound: (coords: [number, number][]) => void;
+  onWalkGeometryFound?: (walkGeo: [number, number][][]) => void;
   onClearRoute: () => void;
   onFromChange?: (result: SearchResult | null) => void;
   onToChange?: (result: SearchResult | null) => void;
@@ -38,6 +39,7 @@ const TYPE_ICONS: Record<VehicleType, string> = {
 
 export default function RoutePlanner({
   onRouteFound,
+  onWalkGeometryFound,
   onClearRoute,
   onFromChange,
   onToChange,
@@ -86,7 +88,8 @@ export default function RoutePlanner({
     setSelectedRoute(null);
     setNoRoute(false);
     onClearRoute();
-  }, [onClearRoute]);
+    onWalkGeometryFound?.([]);
+  }, [onClearRoute, onWalkGeometryFound]);
 
   const handleSearch = useCallback(async () => {
     if (!fromResult && !userLocation) return;
@@ -115,6 +118,7 @@ export default function RoutePlanner({
         const best = data.transitRoutes[0] as TransitRouteResult;
         setSelectedRoute(best);
         if (best.geometry.length > 1) onRouteFound(best.geometry);
+        onWalkGeometryFound?.(best.walkGeometry ?? []);
       } else {
         setNoRoute(true);
       }
@@ -132,8 +136,9 @@ export default function RoutePlanner({
     (route: TransitRouteResult) => {
       setSelectedRoute(route);
       if (route.geometry.length > 1) onRouteFound(route.geometry);
+      onWalkGeometryFound?.(route.walkGeometry ?? []);
     },
-    [onRouteFound],
+    [onRouteFound, onWalkGeometryFound],
   );
 
   const setUseMyLocation = useCallback(() => {

@@ -6,14 +6,15 @@
  * or times out, so the app never breaks — it just degrades gracefully.
  */
 export async function snapToRoads(
-  stops: { lat: number; lng: number }[]
+  stops: { lat: number; lng: number }[],
+  profile: 'driving' | 'foot' = 'driving'
 ): Promise<[number, number][]> {
   if (stops.length < 2) return stops.map((s) => [s.lat, s.lng]);
 
   // OSRM expects coordinates as "lng,lat" pairs (GeoJSON order), semicolon-separated
   const coords = stops.map((s) => `${s.lng.toFixed(6)},${s.lat.toFixed(6)}`).join(';');
   const url =
-    `https://router.project-osrm.org/route/v1/driving/${coords}` +
+    `https://router.project-osrm.org/route/v1/${profile}/${coords}` +
     `?overview=full&geometries=geojson`;
 
   try {

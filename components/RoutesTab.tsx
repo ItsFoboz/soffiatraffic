@@ -7,6 +7,7 @@ import { useT } from './TranslationContext';
 
 interface RoutesTabProps {
   onRouteFound: (coords: [number, number][]) => void;
+  onWalkGeometryFound?: (walkGeo: [number, number][][]) => void;
   onClearRoute: () => void;
   onShowOnMap: () => void;
   onStartNavigation?: (route: TransitRouteResult, dest: SearchResult) => void;
@@ -19,7 +20,7 @@ const TRANSPORT_TYPES = [
   { key: 'metro',   emoji: '🚇', labelKey: 'vehicle.metro',   color: 'var(--color-metro)'   },
 ];
 
-export default function RoutesTab({ onRouteFound, onClearRoute, onShowOnMap, onStartNavigation }: RoutesTabProps) {
+export default function RoutesTab({ onRouteFound, onWalkGeometryFound, onClearRoute, onShowOnMap, onStartNavigation }: RoutesTabProps) {
   const { t } = useT();
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [hasRoute, setHasRoute] = useState(false);
@@ -56,6 +57,7 @@ export default function RoutesTab({ onRouteFound, onClearRoute, onShowOnMap, onS
       <div className="px-4">
         <RoutePlanner
           onRouteFound={handleRouteFound}
+          onWalkGeometryFound={onWalkGeometryFound}
           onClearRoute={handleClearRoute}
           userLocation={userLocation}
           onFromChange={(_r: SearchResult | null) => { setHasRoute(false); }}

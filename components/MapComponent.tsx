@@ -40,6 +40,7 @@ interface MapComponentProps {
   stopFilter?: string;
   selectedStop?: Stop | null;
   routeCoords?: [number, number][];
+  walkPolylines?: [number, number][][];
   vehicleRouteCoords?: [number, number][];
   userLocation?: [number, number] | null;
   onStopClick?: (stop: Stop) => void;
@@ -87,6 +88,7 @@ export default function MapComponent({
   stopFilter = 'all',
   selectedStop,
   routeCoords,
+  walkPolylines,
   vehicleRouteCoords,
   userLocation,
   onStopClick,
@@ -103,6 +105,7 @@ export default function MapComponent({
   const stopLayerRef       = useRef<import('leaflet').LayerGroup | null>(null);
   const tileLayerRef       = useRef<import('leaflet').TileLayer | null>(null);
   const routeLayerRef      = useRef<import('leaflet').Polyline | null>(null);
+  const walkLayerRef       = useRef<import('leaflet').LayerGroup | null>(null);
   const vehicleRouteLayerRef = useRef<import('leaflet').Polyline | null>(null);
   const userMarkerRef      = useRef<import('leaflet').Marker | null>(null);
   const initializedRef     = useRef(false);
@@ -335,6 +338,23 @@ export default function MapComponent({
       }
     });
   }, [routeCoords]);
+
+  // ── Walk segment polylines (dashed grey) ────────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current) return;
+    import('leaflet').then(({ default: L }) => {
+      if (!walkLayerRef.current) {
+        walkLayerRef.current = L.layerGroup().addTo(mapRef.current!);
+      }
+      walkLayerRef.current.clearLayers();
+      for (const seg of walkPolylines ?? []) {
+        if (seg.length > 1) {
+          L.polyline(seg, { color: '#6B7280', weight: 3, opacity: 0.75, dashArray: '6, 10' })
+            .addTo(walkLayerRef.current!);
+        }
+      }
+    });
+  }, [walkPolylines]);
 
   // ── Vehicle line route overlay ───────────────────────────────────────────
   useEffect(() => {

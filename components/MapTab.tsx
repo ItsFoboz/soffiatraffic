@@ -40,6 +40,7 @@ interface ActiveNavigation {
 
 interface MapTabProps {
   routeCoords?: [number, number][];
+  walkPolylines?: [number, number][][];
   onClearRoute?: () => void;
   jumpToStop?: Stop | null;
   onJumpToStopHandled?: () => void;
@@ -51,6 +52,7 @@ interface MapTabProps {
 
 export default function MapTab({
   routeCoords,
+  walkPolylines,
   onClearRoute,
   jumpToStop,
   onJumpToStopHandled,
@@ -172,6 +174,7 @@ export default function MapTab({
           stopFilter={filter}
           selectedStop={selectedStop}
           routeCoords={routeCoords}
+          walkPolylines={walkPolylines}
           vehicleRouteCoords={vehicleRouteCoords}
           userLocation={userLocation}
           onStopClick={handleStopClick}

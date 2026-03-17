@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
       stops: StopInfo[]; geometry: [number, number][];
       walkToStop: number; walkFromStop: number;
       duration: number; numStops: number;
+      walkGeometry?: [number, number][][];
     };
     const directResults: DirectResult[] = [];
 
@@ -140,9 +141,15 @@ export async function GET(request: NextRequest) {
 
     if (direct.length > 0) {
       const top = direct.slice(0, 6);
-      // Snap each route geometry to actual roads in parallel
+      // Snap transit geometry to roads; also snap walk segments using pedestrian profile
       await Promise.all(top.map(async (r) => {
-        r.geometry = await snapToRoads(r.stops);
+        const [transitGeo, walkTo, walkFrom] = await Promise.all([
+          snapToRoads(r.stops),
+          snapToRoads([{ lat: fromLat, lng: fromLng }, r.boardStop], 'foot'),
+          snapToRoads([r.alightStop, { lat: toLat, lng: toLng }], 'foot'),
+        ]);
+        r.geometry = transitGeo;
+        r.walkGeometry = [walkTo, walkFrom];
       }));
       return NextResponse.json({ transitRoutes: top, code: 'Ok' });
     }
@@ -211,14 +218,17 @@ export async function GET(request: NextRequest) {
     const transfers = [...transferSeen.values()].sort((a, b) => a.duration - b.duration);
 
     const topTransfers = transfers.slice(0, 3);
-    // Snap each leg to roads separately, then join — avoids routing through
-    // the transfer connection as a single trip
+    // Snap each leg to roads separately; also snap all three walk segments
     await Promise.all(topTransfers.map(async (r) => {
-      const [geo1, geo2] = await Promise.all([
+      const [geo1, geo2, walkTo, walkTransfer, walkFrom] = await Promise.all([
         snapToRoads(r.stops),
         snapToRoads(r.stops2 ?? []),
+        snapToRoads([{ lat: fromLat, lng: fromLng }, r.boardStop], 'foot'),
+        snapToRoads([r.transferStop, r.boardStop2], 'foot'),
+        snapToRoads([r.alightStop2, { lat: toLat, lng: toLng }], 'foot'),
       ]);
       r.geometry = [...geo1, ...geo2];
+      r.walkGeometry = [walkTo, walkTransfer, walkFrom];
     }));
 
     return NextResponse.json({

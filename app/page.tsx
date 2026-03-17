@@ -17,6 +17,7 @@ type Tab = 'map' | 'routes' | 'stops' | 'favorites';
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>('map');
   const [routeCoords, setRouteCoords] = useState<[number, number][]>([]);
+  const [walkRouteCoords, setWalkRouteCoords] = useState<[number, number][][]>([]);
   const [stops, setStops] = useState<Stop[]>([]);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [jumpToStop, setJumpToStop] = useState<Stop | null>(null);
@@ -46,8 +47,13 @@ export default function Home() {
     setRouteCoords(coords);
   }, []);
 
+  const handleWalkGeometryFound = useCallback((walkGeo: [number, number][][]) => {
+    setWalkRouteCoords(walkGeo);
+  }, []);
+
   const handleClearRoute = useCallback(() => {
     setRouteCoords([]);
+    setWalkRouteCoords([]);
   }, []);
 
   // When user selects a stop from any tab, jump to it on the map
@@ -59,6 +65,7 @@ export default function Home() {
   const handleStartNavigation = useCallback((route: TransitRouteResult, dest: SearchResult) => {
     setActiveNavigation({ route, destName: dest.name, destLat: dest.lat, destLng: dest.lng });
     setRouteCoords(route.geometry);
+    setWalkRouteCoords(route.walkGeometry ?? []);
     setActiveTab('map');
   }, []);
 
@@ -72,6 +79,7 @@ export default function Home() {
         <div className={`absolute inset-0 ${activeTab === 'map' ? 'z-10' : 'z-0 pointer-events-none opacity-0'}`}>
           <MapTab
             routeCoords={routeCoords}
+            walkPolylines={walkRouteCoords}
             onClearRoute={handleClearRoute}
             jumpToStop={jumpToStop}
             onJumpToStopHandled={() => setJumpToStop(null)}
@@ -87,6 +95,7 @@ export default function Home() {
           <div className="absolute inset-0 z-10 overflow-y-auto bg-gray-50">
             <RoutesTab
               onRouteFound={handleRouteFound}
+              onWalkGeometryFound={handleWalkGeometryFound}
               onClearRoute={handleClearRoute}
               onShowOnMap={() => setActiveTab('map')}
               onStartNavigation={handleStartNavigation}
