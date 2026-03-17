@@ -249,14 +249,14 @@ export default function StopArrivals({ stop, onClose }: StopArrivalsProps) {
                       <div
                         className="flex flex-col items-center justify-center flex-shrink-0"
                         style={{
-                          width: '44px',
-                          height: '44px',
+                          width: '52px',
+                          height: '52px',
                           borderRadius: 'var(--radius-sm)',
                           background: TYPE_COLOR[a.type],
                           boxShadow: 'var(--shadow-sm)',
                         }}
                       >
-                        <span className="text-base leading-none">{TYPE_EMOJI[a.type]}</span>
+                        <span className="leading-none" style={{ fontSize: '22px' }}>{TYPE_EMOJI[a.type]}</span>
                         <span className="text-white leading-tight mt-0.5" style={{ fontSize: '10px', fontWeight: 'var(--font-weight-bold)' }}>{a.line}</span>
                       </div>
 
@@ -270,7 +270,7 @@ export default function StopArrivals({ stop, onClose }: StopArrivalsProps) {
                             color: a.direction ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
                           }}
                         >
-                          {a.direction || 'Unknown direction'}
+                          {a.direction || `${a.type.charAt(0).toUpperCase() + a.type.slice(1)} ${a.line}`}
                         </p>
                         {a.isRealtime && (
                           <p className="flex items-center gap-1 mt-0.5" style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-live)' }}>
